@@ -1,0 +1,3 @@
+ALTER TABLE public.shops
+  ALTER COLUMN rating TYPE NUMERIC(3,2)
+  USING rating::NUMERIC(3,2);

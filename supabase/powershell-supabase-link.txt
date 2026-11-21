@@ -1,0 +1,17 @@
+cd "c:\Users\fawaz zeed\Downloads\marib-guide-hub-main\marib-guide-hub-main"
+
+# Install CLI locally if needed
+npx supabase --version
+
+# Log in to Supabase
+npx supabase login
+
+# Link the local project to the correct Supabase project
+npx supabase link --project-ref yyvjupgezwzdjhsrzxtb
+
+# Check status
+npx supabase status
+
+# Quick database verification
+npx supabase db query "select * from public.user_roles limit 20;"
+npx supabase db query "select * from auth.users limit 10;"

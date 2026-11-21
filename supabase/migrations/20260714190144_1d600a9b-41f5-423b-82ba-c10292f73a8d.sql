@@ -1,0 +1,1 @@
+DELETE FROM public.shops WHERE sector_id = 'gov';

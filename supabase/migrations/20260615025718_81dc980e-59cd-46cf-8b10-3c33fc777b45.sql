@@ -1,0 +1,3 @@
+ALTER TABLE public.shops
+  ADD COLUMN IF NOT EXISTS specialties text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS is_24_7 boolean NOT NULL DEFAULT false;
