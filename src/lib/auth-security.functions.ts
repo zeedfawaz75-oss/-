@@ -34,7 +34,8 @@ export const checkAuthRateLimit = createServerFn({ method: "POST" })
     const { count } = await db
       .from("auth_attempts")
       .select("id", { count: "exact", head: true })
-      .eq("phone", phone);
+      .eq("phone", phone)
+      .eq("outcome", "failure");
 
     const attempts = count ?? 0;
     if (attempts >= 10) return { allowed: false as const, retryAfterSeconds: 15 * 60 };

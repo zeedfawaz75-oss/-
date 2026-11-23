@@ -91,6 +91,13 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
         .insert({ user_id: data.userId, role: data.role as any });
       if (error) throw new Error(error.message);
     }
+    const db = supabaseAdmin as any;
+    await db.from("admin_security_audit").insert({
+      actor_user_id: context.userId,
+      target_user_id: data.userId,
+      action: "admin_role_change",
+      details: data.role ? `تم تعيين صلاحية: ${data.role}` : "تم إزالة صلاحيات المستخدم",
+    });
     return { ok: true };
   });
 
@@ -106,6 +113,19 @@ export const adminSetUserBan = createServerFn({ method: "POST" })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     if (error) throw new Error(error.message);
+    const db = supabaseAdmin as any;
+    await db.from("admin_security_audit").insert({
+      actor_user_id: context.userId,
+      target_user_id: data.userId,
+      action: data.banned ? "admin_account_ban" : "admin_account_unban",
+      details: data.banned ? "تم حظر الحساب من قبل مسؤول" : "تم رفع حظر الحساب من قبل مسؤول",
+    });
+    await supabaseAdmin.from("notifications").insert({
+      user_id: data.userId,
+      type: "security",
+      title: data.banned ? "تم حظر حسابك ⛔" : "تم رفع الحظر عن حسابك ✅",
+      body: data.banned ? "قام مسؤول بحظر الحساب. تواصل مع الإدارة للمراجعة." : "تمت إعادة تفعيل الحساب بواسطة الإدارة.",
+    });
     return { ok: true };
   });
 

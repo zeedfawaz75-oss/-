@@ -24,9 +24,29 @@ CREATE INDEX IF NOT EXISTS admin_security_audit_created_idx
   ON public.admin_security_audit (created_at DESC);
 
 ALTER TABLE public.admin_security_audit ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.admin_security_audit FROM PUBLIC, anon;
 GRANT SELECT ON public.admin_security_audit TO authenticated;
 GRANT ALL ON public.admin_security_audit TO service_role;
 
 CREATE POLICY "Admins view security audit"
   ON public.admin_security_audit FOR SELECT TO authenticated
   USING (public.has_role(auth.uid(), 'admin'));
+
+-- Cleanup policy to remove old auth attempts
+CREATE OR REPLACE FUNCTION public.cleanup_auth_attempts()
+RETURNS VOID AS
+$$
+BEGIN
+  DELETE FROM public.auth_attempts
+  WHERE created_at < now() - interval '30 days';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.cleanup_admin_security_audit()
+RETURNS VOID AS
+$$
+BEGIN
+  DELETE FROM public.admin_security_audit
+  WHERE created_at < now() - interval '30 days';
+END;
+$$ LANGUAGE plpgsql;
