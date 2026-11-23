@@ -1,6 +1,6 @@
 // Guarded PWA service worker registration.
 // - Never registers in dev, iframe preview, Lovable preview hosts, or with ?sw=off.
-// - Uses /sw.js served by vite-plugin-pwa (generateSW).
+// - Uses the static /sw.js file in public/.
 // - In any refused context, actively unregisters an existing /sw.js.
 
 const APP_SW_PATH = "/sw.js";
@@ -53,7 +53,7 @@ export async function registerPwa(): Promise<(() => void) | undefined> {
     return;
   }
   try {
-    // vite-plugin-pwa emits /sw.js at build time
+    // Vite copies public/sw.js to the site root.
     const reg = await navigator.serviceWorker.register(APP_SW_PATH, {
       scope: "/",
       updateViaCache: "none",
