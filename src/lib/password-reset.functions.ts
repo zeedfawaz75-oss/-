@@ -74,7 +74,7 @@ export const registerWithPhone = createServerFn({ method: "POST" })
     const password = String(input?.password ?? "");
     if (!/^7\d{8}$/.test(phone)) throw new Error("الرجاء إدخال رقم جوال يمني صحيح.");
     if (fullName.length < 2) throw new Error("الرجاء إدخال الاسم الكامل.");
-    if (password.length < 6 || password.length > 72) throw new Error("كلمة المرور يجب أن تكون بين 6 و72 حرفاً.");
+    if (!isStrongPassword(password)) throw new Error("كلمة المرور يجب أن تكون 12 حرفًا وتشمل حروفًا وأرقامًا ورمزًا على الأقل.");
     return { phone, fullName, password };
   })
   .handler(async ({ data }) => {
@@ -191,6 +191,14 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
         body: `الجوال: ${data.phone} — الاسم: ${target!.name} — الوقت: ${when} — يُرجى التواصل مع المستخدم عبر واتساب للتحقق ثم تعيين كلمة مرور جديدة من لوحة الإدارة.`,
       }));
       if (rows.length) await supabaseAdmin.from("notifications").insert(rows);
+
+      // Notify the requesting account in-app.
+      await supabaseAdmin.from("notifications").insert({
+        user_id: target.id,
+        type: "security",
+        title: "تم إرسال طلب استعادة كلمة المرور 🔐",
+        body: "تلقى المشرفون طلب الاستعادة. سيتواصلون معك عبر واتساب للتحقق قبل تغيير كلمة المرور.",
+      });
     } catch {
       // auditing must never block the request flow
     }
@@ -200,3 +208,13 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
     void DEVELOPER_WHATSAPP;
     return { ok: true as const };
   });
+
+function isStrongPassword(password: string): boolean {
+  if (password.length < 12 || password.length > 72) return false;
+  let classes = 0;
+  if (/\p{Ll}/u.test(password)) classes++;
+  if (/\p{Lu}/u.test(password)) classes++;
+  if (/\d/.test(password)) classes++;
+  if (/[^\p{L}\p{N}\s]/u.test(password)) classes++;
+  return classes >= 3;
+}

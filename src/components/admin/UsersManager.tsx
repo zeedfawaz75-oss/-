@@ -63,7 +63,7 @@ export function UsersManager() {
 
   const savePassword = async () => {
     if (!pwUser) return;
-    if (pw.length < 6) { toast.error("كلمة المرور 6 أحرف على الأقل"); return; }
+    if (pw.length < 12) { toast.error("كلمة المرور 12 حرفًا على الأقل"); return; }
     if (pw !== pw2) { toast.error("كلمتا المرور غير متطابقتين"); return; }
     setBusy(pwUser.id);
     try {

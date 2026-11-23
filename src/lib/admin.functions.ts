@@ -113,7 +113,7 @@ export const adminSetUserBan = createServerFn({ method: "POST" })
 export const adminSetUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ userId: z.string().uuid(), password: z.string().min(6).max(72) }).parse(d),
+    z.object({ userId: z.string().uuid(), password: z.string().min(12).max(72) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -122,6 +122,23 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
+
+    // The new audit table is applied by migration; cast until generated types are refreshed.
+    const db = supabaseAdmin as any;
+    await db.from("admin_security_audit").insert({
+      actor_user_id: context.userId,
+      target_user_id: data.userId,
+      action: "admin_password_change",
+      details: "تم تغيير كلمة مرور المستخدم بواسطة مسؤول.",
+    });
+
+    await supabaseAdmin.from("notifications").insert({
+      user_id: data.userId,
+      type: "security",
+      title: "تم تغيير كلمة مرور حسابك 🔐",
+      body: "قام مسؤول بتغيير كلمة المرور. إذا لم تطلب ذلك، تواصل فورًا مع الإدارة وصعّب كلمة مرورك.",
+    });
+
     return { ok: true };
   });
 

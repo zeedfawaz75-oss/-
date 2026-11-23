@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { checkExistingIdentity, registerWithPhone, requestPasswordReset } from "@/lib/password-reset.functions";
+import { checkAuthRateLimit, recordAuthAttempt, isStrongPassword } from "@/lib/auth-security.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -79,6 +80,8 @@ function AuthPage() {
   const runResetRequest = useServerFn(requestPasswordReset);
   const runIdentityCheck = useServerFn(checkExistingIdentity);
   const runPhoneRegistration = useServerFn(registerWithPhone);
+  const runAuthLimit = useServerFn(checkAuthRateLimit);
+  const runAuthAttempt = useServerFn(recordAuthAttempt);
 
   const sendResetLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +103,7 @@ function AuthPage() {
       });
       void res;
       // نفس الرسالة دائماً حتى لا يكشف النظام وجود الحساب من عدمه
-      setResetMsg("✅ تم استلام طلبك — الحالة: قيد المراجعة لدى الإدارة.\nإذا كانت البيانات مطابقة لحساب مسجّل فسيصل الطلب إلى لوحة إشعارات الإدارة وإلى واتساب المطوّر في الوقت نفسه، وسيتواصل معك المشرف للتحقق قبل تعيين كلمة مرور جديدة. يمكنك تسريع الأمر بالضغط على زر واتساب الإدارة بالأسفل.");
+      setResetMsg("✅ تم استلام طلبك — الحالة: قيد المراجعة لدى الإدارة.\nإذا تطابقت البيانات، يصل إشعار أمني إلى الإدارة وحسابك داخل التطبيق. التواصل عبر واتساب يدوي؛ استخدم الزر أدناه وسيتحقق المشرف قبل تعيين كلمة مرور جديدة.");
       setResetName("");
 
     } catch {
@@ -124,13 +127,19 @@ function AuthPage() {
       setError("الرجاء إدخال الاسم الكامل");
       return;
     }
-    if (mode === "signup" && password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    if (mode === "signup" && !isStrongPassword(password)) {
+      setError("كلمة المرور يجب أن تكون 12 حرفًا على الأقل وتشمل حروفًا وأرقامًا ورمزًا.");
       return;
     }
     setLoading(true);
     try {
       const normalizedPhone = normalizePhone(phone);
+      const limit = await runAuthLimit({ data: { phone: normalizedPhone } });
+      if (!limit.allowed) {
+        setError("تم تجاوز عدد المحاولات المسموح به. انتظر 15 دقيقة ثم حاول مجددًا.");
+        return;
+      }
+
       const identifier = phoneToEmail(normalizedPhone);
       const legacy = legacyPhoneToEmail(normalizedPhone);
 
@@ -145,16 +154,19 @@ function AuthPage() {
         const existing = await runIdentityCheck({ data: { phone: normalizedPhone, fullName: fullName.trim() } });
         if (existing?.exists) {
           if (!existing.nameMatches) {
-            setError("هذا الرقم مسجّل باسم مختلف. لا يمكن إنشاء حساب آخر بهذا الرقم؛ تحقق من الاسم المسجّل.");
+            void runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
+            setError("تعذّر إكمال إنشاء الحساب بالبيانات المدخلة. تحقق من بياناتك أو سجّل الدخول.");
             return;
           }
           const signInRes = await trySignIn();
           if (!signInRes.error) {
+            void runAuthAttempt({ data: { phone: normalizedPhone, success: true } });
             toast.success("هذا الحساب موجود، تم تسجيل الدخول ✅");
             navigate({ to: "/" });
             return;
           }
-          setError("هذا الرقم والاسم مسجّلان، لكن كلمة المرور غير صحيحة. سجّل الدخول أو اطلب استعادة كلمة المرور.");
+          setError("تعذّر تسجيل الدخول بهذه البيانات. تحقق من كلمة المرور أو اطلب استعادة الحساب.");
+          void runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
           return;
         }
 
@@ -163,16 +175,19 @@ function AuthPage() {
         });
         if (!registration.created) {
           if (!registration.nameMatches) {
-            setError("هذا الرقم مسجّل مسبقاً. تحقق من بيانات الحساب أو تواصل مع الإدارة.");
+            void runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
+            setError("تعذّر إكمال إنشاء الحساب بالبيانات المدخلة. تحقق من بياناتك أو سجّل الدخول.");
             return;
           }
           const signInRes = await trySignIn();
           if (!signInRes.error) {
+            void runAuthAttempt({ data: { phone: normalizedPhone, success: true } });
             toast.success("هذا الحساب موجود، تم تسجيل الدخول ✅");
             navigate({ to: "/" });
             return;
           }
-          setError("هذا الرقم مسجّل مسبقاً، لكن كلمة المرور غير صحيحة. سجّل الدخول أو اطلب استعادة كلمة المرور.");
+          setError("تعذّر تسجيل الدخول بهذه البيانات. تحقق من كلمة المرور أو اطلب استعادة الحساب.");
+          void runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
           return;
         }
 
@@ -186,7 +201,11 @@ function AuthPage() {
         }
       } else {
         const { error: siErr } = await trySignIn();
-        if (siErr) throw siErr;
+        if (siErr) {
+          void runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
+          throw siErr;
+        }
+        void runAuthAttempt({ data: { phone: normalizedPhone, success: true } });
         toast.success("تم تسجيل الدخول ✅");
         navigate({ to: "/" });
       }

@@ -41,8 +41,8 @@ function ResetPasswordPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل.");
+    if (password.length < 12) {
+      setError("كلمة المرور يجب أن تكون 12 حرفًا على الأقل.");
       return;
     }
     if (password !== confirm) {
