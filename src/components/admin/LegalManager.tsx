@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getLegalPage, updateLegalPage } from "@/lib/legal.functions";
 import { toast } from "sonner";
@@ -12,8 +12,14 @@ interface PageState {
 }
 
 const LABELS: Record<Tab, { title: string; desc: string }> = {
-  terms: { title: "الشروط والأحكام", desc: "النص القانوني الذي يظهر لتبويب الشروط داخل نافذة المساعدة." },
-  privacy: { title: "سياسة الخصوصية", desc: "النص القانوني الذي يظهر لتبويب الخصوصية داخل نافذة المساعدة." },
+  terms: {
+    title: "الشروط والأحكام",
+    desc: "النص القانوني الذي يظهر لتبويب الشروط داخل نافذة المساعدة.",
+  },
+  privacy: {
+    title: "سياسة الخصوصية",
+    desc: "النص القانوني الذي يظهر لتبويب الخصوصية داخل نافذة المساعدة.",
+  },
 };
 
 export function LegalManager() {
@@ -27,7 +33,7 @@ export function LegalManager() {
   const getFn = useServerFn(getLegalPage);
   const updateFn = useServerFn(updateLegalPage);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [t, p] = await Promise.all([
@@ -43,9 +49,11 @@ export function LegalManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getFn]);
 
-  useEffect(() => { load(); }, [getFn]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const save = async () => {
     setSaving(true);
@@ -69,7 +77,9 @@ export function LegalManager() {
             key={k}
             onClick={() => setTab(k)}
             className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-smooth ${
-              tab === k ? "bg-primary text-primary-foreground shadow-soft" : "bg-card border border-border text-foreground"
+              tab === k
+                ? "bg-primary text-primary-foreground shadow-soft"
+                : "bg-card border border-border text-foreground"
             }`}
           >
             {LABELS[k].title}
@@ -88,7 +98,9 @@ export function LegalManager() {
               <input
                 type="text"
                 value={current.title}
-                onChange={(e) => setPages((prev) => ({ ...prev, [tab]: { ...prev[tab], title: e.target.value } }))}
+                onChange={(e) =>
+                  setPages((prev) => ({ ...prev, [tab]: { ...prev[tab], title: e.target.value } }))
+                }
                 className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
@@ -96,7 +108,12 @@ export function LegalManager() {
               <label className="block text-xs font-bold text-foreground mb-1">المحتوى</label>
               <textarea
                 value={current.content}
-                onChange={(e) => setPages((prev) => ({ ...prev, [tab]: { ...prev[tab], content: e.target.value } }))}
+                onChange={(e) =>
+                  setPages((prev) => ({
+                    ...prev,
+                    [tab]: { ...prev[tab], content: e.target.value },
+                  }))
+                }
                 rows={16}
                 className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                 dir="rtl"
@@ -123,7 +140,9 @@ export function LegalManager() {
       </div>
 
       <div className="bg-secondary/40 border border-border rounded-xl p-3 text-xs text-muted-foreground">
-        💡 <span className="font-bold text-foreground">نصيحة:</span> استخدم سطرًا فارغًا بين الفقرات، واكتب «• » (نقطة متبوعة بمسافة) قبل كل عنصر في القوائم النقطية، و«1. » قبل العناصر المرقّمة.
+        💡 <span className="font-bold text-foreground">نصيحة:</span> استخدم سطرًا فارغًا بين
+        الفقرات، واكتب «• » (نقطة متبوعة بمسافة) قبل كل عنصر في القوائم النقطية، و«1. » قبل العناصر
+        المرقّمة.
       </div>
     </section>
   );

@@ -50,7 +50,9 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
     setLoading(false);
   }, [shopId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,13 +73,24 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
       setComment(data.comment ?? "");
       if (data.author_name) setDisplayName(data.author_name);
     };
-    supabase.auth.getUser().then(({ data }) =>
-      apply(data.user?.id ?? null, data.user?.user_metadata as Record<string, unknown> | undefined),
-    );
+    supabase.auth
+      .getUser()
+      .then(({ data }) =>
+        apply(
+          data.user?.id ?? null,
+          data.user?.user_metadata as Record<string, unknown> | undefined,
+        ),
+      );
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
-      apply(session?.user?.id ?? null, session?.user?.user_metadata as Record<string, unknown> | undefined),
+      apply(
+        session?.user?.id ?? null,
+        session?.user?.user_metadata as Record<string, unknown> | undefined,
+      ),
     );
-    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [shopId]);
 
   const submit = async () => {
@@ -102,9 +115,7 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
     load();
   };
 
-  const avg = reviews.length
-    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-    : 0;
+  const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
   return (
     <section className="mt-5 bg-card rounded-2xl border border-border shadow-soft p-5" id="reviews">
@@ -131,9 +142,13 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
               className={`text-2xl leading-none transition-transform hover:scale-110 ${
                 n <= (hover || stars) ? "text-gold" : "text-muted-foreground/40"
               }`}
-            >★</button>
+            >
+              ★
+            </button>
           ))}
-          {stars > 0 && <span className="text-xs font-bold text-muted-foreground ms-2">{stars}/5</span>}
+          {stars > 0 && (
+            <span className="text-xs font-bold text-muted-foreground ms-2">{stars}/5</span>
+          )}
         </div>
         <input
           value={displayName}
@@ -161,7 +176,9 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
           </button>
         </div>
         {!userId && (
-          <p className="text-[11px] text-muted-foreground mt-2">🔒 سجّل الدخول أولاً لتتمكن من نشر تعليقك.</p>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            🔒 سجّل الدخول أولاً لتتمكن من نشر تعليقك.
+          </p>
         )}
       </div>
 
@@ -170,19 +187,25 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-4">جاري تحميل التعليقات...</p>
         ) : reviews.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">لا توجد تعليقات بعد — كن أول من يشارك تجربته ✨</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            لا توجد تعليقات بعد — كن أول من يشارك تجربته ✨
+          </p>
         ) : (
           <ul className="divide-y divide-border">
             {reviews.map((r) => (
               <li key={r.id} className="py-3 flex gap-3 items-start">
                 <div className="w-9 h-9 shrink-0 rounded-full bg-gold/20 border border-gold/40 grid place-items-center text-sm font-black text-foreground">
-                  {(r.author_name?.trim()?.[0] ?? "م")}
+                  {r.author_name?.trim()?.[0] ?? "م"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-black text-foreground">{r.author_name?.trim() || "مستخدم"}</span>
+                    <span className="text-sm font-black text-foreground">
+                      {r.author_name?.trim() || "مستخدم"}
+                    </span>
                     <Stars value={r.rating} />
-                    <span className="text-[11px] text-muted-foreground">{timeAgo(r.created_at)}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {timeAgo(r.created_at)}
+                    </span>
                   </div>
                   {r.comment && (
                     <p className="text-sm text-foreground leading-relaxed mt-1 whitespace-pre-line break-words">

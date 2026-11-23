@@ -33,7 +33,11 @@ export function InstallButton() {
       setReady(true);
     };
     const onInstalled = () => {
-      try { localStorage.setItem(INSTALLED_KEY, "1"); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(INSTALLED_KEY, "1");
+      } catch {
+        /* ignore */
+      }
       setJustInstalled(true);
       setTimeout(() => setInstalled(true), 2500);
     };
@@ -65,7 +69,11 @@ export function InstallButton() {
     await deferred.prompt();
     const choice = await deferred.userChoice;
     if (choice.outcome === "accepted") {
-      try { localStorage.setItem(INSTALLED_KEY, "1"); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(INSTALLED_KEY, "1");
+      } catch {
+        /* ignore */
+      }
       setJustInstalled(true);
       setTimeout(() => setInstalled(true), 2500);
     }

@@ -14,7 +14,9 @@ function writeLS<T>(key: string, value: T) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 const FAV_KEY = "marib:favorites";
@@ -27,7 +29,8 @@ export function useFavorites() {
   const toggle = useCallback((id: string) => {
     setFavs((prev) => {
       const next = { ...prev };
-      if (next[id]) delete next[id]; else next[id] = true;
+      if (next[id]) delete next[id];
+      else next[id] = true;
       return next;
     });
   }, []);
@@ -50,7 +53,11 @@ export function useDarkMode() {
   const [dark, setDark] = useState(false);
   useEffect(() => {
     const stored = window.localStorage.getItem(THEME_KEY);
-    setDark(stored ? stored === "dark" : (window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false));
+    setDark(
+      stored
+        ? stored === "dark"
+        : (window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false),
+    );
   }, []);
   useEffect(() => {
     if (typeof document === "undefined") return;

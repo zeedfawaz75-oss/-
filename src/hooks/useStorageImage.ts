@@ -7,9 +7,16 @@ export function useStorageImage(url: string | null | undefined): string | null {
 
   useEffect(() => {
     let alive = true;
-    if (!url) { setSrc(null); return; }
-    resolveStorageUrl(url).then((u) => { if (alive) setSrc(u); });
-    return () => { alive = false; };
+    if (!url) {
+      setSrc(null);
+      return;
+    }
+    resolveStorageUrl(url).then((u) => {
+      if (alive) setSrc(u);
+    });
+    return () => {
+      alive = false;
+    };
   }, [url]);
 
   return src;

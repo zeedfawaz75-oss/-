@@ -18,9 +18,7 @@ export const subRowId = (sectorId: string, subId: string) => `${sectorId}:${subI
 
 /** Turn flat category rows into the Sector[] shape the app already uses. */
 export function buildSectors(rows: CategoryRow[]): Sector[] {
-  const parents = rows
-    .filter((r) => !r.parent_id)
-    .sort((a, b) => a.sort_order - b.sort_order);
+  const parents = rows.filter((r) => !r.parent_id).sort((a, b) => a.sort_order - b.sort_order);
   return parents.map((p) => ({
     id: p.id,
     title: p.title,
@@ -66,13 +64,16 @@ export function useCategories() {
     }
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const sectors: Sector[] = rows && rows.length > 0 ? buildSectors(rows) : SECTORS;
   const hidden = new Set((rows ?? []).filter((r) => !r.parent_id && r.is_hidden).map((r) => r.id));
-  const visibleSectors = rows && rows.length > 0
-    ? sectors.filter((s) => !hidden.has(s.id))
-    : sectors.filter((s) => s.id !== "misc");
+  const visibleSectors =
+    rows && rows.length > 0
+      ? sectors.filter((s) => !hidden.has(s.id))
+      : sectors.filter((s) => s.id !== "misc");
 
   return { rows: rows ?? [], sectors, visibleSectors, loading, reload };
 }

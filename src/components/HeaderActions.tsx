@@ -60,8 +60,14 @@ export function HeaderActions() {
     ...local.items,
   ].sort((a, b) => b.ts - a.ts);
   const unread = local.unread + db.unread;
-  const markAllRead = () => { local.markAllRead(); db.markAllRead(); };
-  const clear = () => { local.clear(); db.clear(); };
+  const markAllRead = () => {
+    local.markAllRead();
+    db.markAllRead();
+  };
+  const clear = () => {
+    local.clear();
+    db.clear();
+  };
 
   const [open, setOpen] = useState(false);
   const [favOpen, setFavOpen] = useState(false);
@@ -86,26 +92,38 @@ export function HeaderActions() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
+      setUser(session?.user ?? null),
+    );
     return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    fetchApprovedShops().then(setShops).catch(() => {});
+    fetchApprovedShops()
+      .then(setShops)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!isAdmin) { setPendingCount(0); return; }
+    if (!isAdmin) {
+      setPendingCount(0);
+      return;
+    }
     let cancelled = false;
     const load = async () => {
       try {
         const res = await pendingFn({ data: undefined });
         if (!cancelled) setPendingCount(res.count);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     load();
     const t = setInterval(load, 60_000);
-    return () => { cancelled = true; clearInterval(t); };
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
   }, [isAdmin, pendingFn]);
 
   useEffect(() => {
@@ -135,60 +153,76 @@ export function HeaderActions() {
       <div className="flex items-center gap-2 sm:gap-2.5">
         {/* Notifications */}
         <div className="relative">
-          <button onClick={toggleBell} aria-label="الإشعارات" title="الإشعارات" className={ICON_BTN}>
+          <button
+            onClick={toggleBell}
+            aria-label="الإشعارات"
+            title="الإشعارات"
+            className={ICON_BTN}
+          >
             🔔
             <Badge count={unread} />
           </button>
 
           {open && (
             <>
-            <div className="fixed inset-0 z-[99998] bg-black/20" onClick={() => setOpen(false)} />
-            <div className="absolute top-12 right-0 w-72 max-w-[85vw] bg-card text-foreground rounded-2xl shadow-elegant border border-border z-[99999] animate-fade-in-up">
-
-              <div className="flex items-center justify-between p-3 border-b border-border bg-secondary/50">
-                <span className="font-black text-sm">🔔 الإشعارات</span>
-                {items.length > 0 && (
-                  <button onClick={clear} className="text-[11px] text-muted-foreground hover:text-emergency font-bold">
-                    مسح الكل
-                  </button>
-                )}
-              </div>
-              <div className="max-h-[75vh] overflow-y-auto overscroll-contain">
-                {items.length === 0 ? (
-                  <p className="p-6 text-center text-xs text-muted-foreground">لا توجد إشعارات بعد.</p>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {items.map((n) => (
-                      <li key={n.id} className="p-3 flex gap-2.5 items-start hover:bg-secondary/40 transition-smooth">
-                        <span className="text-lg leading-none mt-0.5">{n.icon ?? "🔔"}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-foreground leading-snug">{n.text}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo(n.ts)}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => sendWaNotification(userPhone, n.text)}
-                          title="إرسال هذا الإشعار إلى واتساب"
-                          aria-label="إرسال إلى واتساب"
-                          className="shrink-0 text-emerald-600 text-sm"
+              <div className="fixed inset-0 z-[99998] bg-black/20" onClick={() => setOpen(false)} />
+              <div className="absolute top-12 right-0 w-72 max-w-[85vw] bg-card text-foreground rounded-2xl shadow-elegant border border-border z-[99999] animate-fade-in-up">
+                <div className="flex items-center justify-between p-3 border-b border-border bg-secondary/50">
+                  <span className="font-black text-sm">🔔 الإشعارات</span>
+                  {items.length > 0 && (
+                    <button
+                      onClick={clear}
+                      className="text-[11px] text-muted-foreground hover:text-emergency font-bold"
+                    >
+                      مسح الكل
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-[75vh] overflow-y-auto overscroll-contain">
+                  {items.length === 0 ? (
+                    <p className="p-6 text-center text-xs text-muted-foreground">
+                      لا توجد إشعارات بعد.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-border">
+                      {items.map((n) => (
+                        <li
+                          key={n.id}
+                          className="p-3 flex gap-2.5 items-start hover:bg-secondary/40 transition-smooth"
                         >
-                          💬
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                          <span className="text-lg leading-none mt-0.5">{n.icon ?? "🔔"}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-foreground leading-snug">{n.text}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {timeAgo(n.ts)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => sendWaNotification(userPhone, n.text)}
+                            title="إرسال هذا الإشعار إلى واتساب"
+                            aria-label="إرسال إلى واتساب"
+                            className="shrink-0 text-emerald-600 text-sm"
+                          >
+                            💬
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
-            </div>
             </>
           )}
-
         </div>
 
         {/* Favorites — compact dropdown */}
         <div className="relative">
           <button
-            onClick={() => { setOpen(false); setFavOpen((v) => !v); }}
+            onClick={() => {
+              setOpen(false);
+              setFavOpen((v) => !v);
+            }}
             aria-label="المفضلة"
             title="محلاتي المفضلة"
             aria-expanded={favOpen}
@@ -200,42 +234,55 @@ export function HeaderActions() {
 
           {favOpen && (
             <>
-            <div className="fixed inset-0 z-[99998] bg-black/20" onClick={() => setFavOpen(false)} />
-            <div className="absolute top-12 right-0 w-72 max-w-[85vw] bg-card text-foreground rounded-2xl shadow-elegant border border-border z-[99999] animate-fade-in-up">
-              <div className="flex items-center justify-between p-3 border-b border-border bg-secondary/50">
-                <span className="font-black text-sm">❤ محلاتي المفضلة</span>
-                <span className="text-[11px] text-muted-foreground font-bold">{favoriteShops.length}</span>
+              <div
+                className="fixed inset-0 z-[99998] bg-black/20"
+                onClick={() => setFavOpen(false)}
+              />
+              <div className="absolute top-12 right-0 w-72 max-w-[85vw] bg-card text-foreground rounded-2xl shadow-elegant border border-border z-[99999] animate-fade-in-up">
+                <div className="flex items-center justify-between p-3 border-b border-border bg-secondary/50">
+                  <span className="font-black text-sm">❤ محلاتي المفضلة</span>
+                  <span className="text-[11px] text-muted-foreground font-bold">
+                    {favoriteShops.length}
+                  </span>
+                </div>
+                <div className="max-h-[75vh] overflow-y-auto overscroll-contain">
+                  {favoriteShops.length === 0 ? (
+                    <p className="p-6 text-center text-xs text-muted-foreground">
+                      لا توجد محلات في مفضلتك بعد — اضغط ♡ على أي محل ليظهر هنا.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-border">
+                      {favoriteShops.map((s) => (
+                        <li key={s.id}>
+                          <Link
+                            to="/shop/$id"
+                            params={{ id: s.id }}
+                            onClick={() => setFavOpen(false)}
+                            className="flex items-center gap-2.5 p-3 hover:bg-secondary/40 transition-smooth"
+                          >
+                            <ShopThumb
+                              url={s.image_url}
+                              name={s.name}
+                              className="w-9 h-9 shrink-0 rounded-xl block"
+                            />
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-xs font-bold text-foreground truncate">
+                                {s.name}
+                              </span>
+                              {s.address && (
+                                <span className="block text-[10px] text-muted-foreground truncate">
+                                  📍 {s.address}
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-muted-foreground text-xs">←</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
-              <div className="max-h-[75vh] overflow-y-auto overscroll-contain">
-                {favoriteShops.length === 0 ? (
-                  <p className="p-6 text-center text-xs text-muted-foreground">
-                    لا توجد محلات في مفضلتك بعد — اضغط ♡ على أي محل ليظهر هنا.
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {favoriteShops.map((s) => (
-                      <li key={s.id}>
-                        <Link
-                          to="/shop/$id"
-                          params={{ id: s.id }}
-                          onClick={() => setFavOpen(false)}
-                          className="flex items-center gap-2.5 p-3 hover:bg-secondary/40 transition-smooth"
-                        >
-                          <ShopThumb url={s.image_url} name={s.name} className="w-9 h-9 shrink-0 rounded-xl block" />
-                          <span className="flex-1 min-w-0">
-                            <span className="block text-xs font-bold text-foreground truncate">{s.name}</span>
-                            {s.address && (
-                              <span className="block text-[10px] text-muted-foreground truncate">📍 {s.address}</span>
-                            )}
-                          </span>
-                          <span className="text-muted-foreground text-xs">←</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
             </>
           )}
         </div>
@@ -245,7 +292,8 @@ export function HeaderActions() {
           type="button"
           onClick={async () => {
             const res = await shareApp();
-            if (res === "clipboard") toast.success("تم نسخ رابط التطبيق — الصقه في أي تطبيق للمشاركة");
+            if (res === "clipboard")
+              toast.success("تم نسخ رابط التطبيق — الصقه في أي تطبيق للمشاركة");
           }}
           aria-label="مشاركة التطبيق"
           title="مشاركة التطبيق"
@@ -313,7 +361,6 @@ export function HeaderActions() {
 
       {/* Help modal */}
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
-
 
       {/* Login confirmation dialog */}
       {loginConfirmOpen && (

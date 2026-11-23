@@ -71,12 +71,16 @@ function ResetPasswordPage() {
         {!ready ? (
           <div className="p-6 text-sm text-muted-foreground text-center space-y-3">
             <p>افتح هذه الصفحة من رابط إعادة التعيين المُرسل إلى بريدك الإلكتروني.</p>
-            <Link to="/auth" className="block text-primary font-bold">← العودة لتسجيل الدخول</Link>
+            <Link to="/auth" className="block text-primary font-bold">
+              ← العودة لتسجيل الدخول
+            </Link>
           </div>
         ) : (
           <form onSubmit={submit} className="p-6 space-y-4">
             <div>
-              <label className="block text-xs font-bold text-muted-foreground mb-1">كلمة المرور الجديدة</label>
+              <label className="block text-xs font-bold text-muted-foreground mb-1">
+                كلمة المرور الجديدة
+              </label>
               <div className="relative">
                 <input
                   type={showPw ? "text" : "password"}
@@ -99,7 +103,9 @@ function ResetPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-muted-foreground mb-1">تأكيد كلمة المرور</label>
+              <label className="block text-xs font-bold text-muted-foreground mb-1">
+                تأكيد كلمة المرور
+              </label>
               <input
                 type={showPw ? "text" : "password"}
                 required
@@ -112,7 +118,9 @@ function ResetPasswordPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-emergency bg-emergency/10 border border-emergency/30 rounded-xl p-2">{error}</p>
+              <p className="text-sm text-emergency bg-emergency/10 border border-emergency/30 rounded-xl p-2">
+                {error}
+              </p>
             )}
 
             <button

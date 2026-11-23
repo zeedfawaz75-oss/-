@@ -36,8 +36,8 @@ export function OfflineScreen() {
         لا يتوفر اتصال بالإنترنت
       </h2>
       <p className="text-sm max-w-sm leading-relaxed" style={{ color: "#e6ecf5" }}>
-        يمكنك تصفح المحلات التي زرتها سابقاً من الذاكرة المؤقتة، وسيتم تحديث البيانات
-        تلقائياً فور عودة الاتصال.
+        يمكنك تصفح المحلات التي زرتها سابقاً من الذاكرة المؤقتة، وسيتم تحديث البيانات تلقائياً فور
+        عودة الاتصال.
       </p>
       <button
         onClick={() => setOffline(!navigator.onLine)}

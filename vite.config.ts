@@ -5,8 +5,9 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import type { ConfigEnv } from "vite";
 
-export default defineConfig({
+const lovableConfig = defineConfig({
   // Make the dev server reachable from localhost and other devices on the LAN.
   vite: {
     server: {
@@ -14,6 +15,23 @@ export default defineConfig({
     },
     // Load .env from the project root for both localhost and LAN access.
     envDir: ".",
+    resolve: {
+      tsconfigPaths: true,
+    },
+    environments: {
+      client: {
+        build: {
+          rollupOptions: {
+            output: {
+              manualChunks(id) {
+                const moduleId = id.replace(/\\/g, "/");
+                if (moduleId.includes("/node_modules/react-dom/")) return "react-dom";
+              },
+            },
+          },
+        },
+      },
+    },
   },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -21,3 +39,12 @@ export default defineConfig({
     server: { entry: "server" },
   },
 });
+
+export default async (env: ConfigEnv) => {
+  const config = await lovableConfig(env);
+  config.plugins = config.plugins?.filter((plugin) => {
+    if (!plugin || Array.isArray(plugin) || typeof plugin !== "object") return true;
+    return !("name" in plugin) || plugin.name !== "vite-tsconfig-paths";
+  });
+  return config;
+};

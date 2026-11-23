@@ -26,11 +26,17 @@ export async function smartShare(opts: { title?: string; text: string; url?: str
     try {
       await navigator.clipboard.writeText(full);
       return "clipboard" as const;
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(full)}`, "_blank", "noopener");
   return "whatsapp" as const;
 }
 
 export const shareApp = () =>
-  smartShare({ title: "دليل مأرب التجاري والخدمي", text: `${APP_PROMO}\nتفضل بزيارة التطبيق:`, url: APP_URL });
+  smartShare({
+    title: "دليل مأرب التجاري والخدمي",
+    text: `${APP_PROMO}\nتفضل بزيارة التطبيق:`,
+    url: APP_URL,
+  });

@@ -27,7 +27,9 @@ function write(items: NotifItem[]) {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(items));
     window.dispatchEvent(new CustomEvent("marib:notif-change"));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // Global helper — toast + persist
@@ -35,7 +37,13 @@ export function notify(text: string, icon = "🔔") {
   toast.success(text);
   const items = read();
   const next = [
-    { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text, icon, ts: Date.now(), read: false },
+    {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      text,
+      icon,
+      ts: Date.now(),
+      read: false,
+    },
     ...items,
   ].slice(0, MAX);
   write(next);

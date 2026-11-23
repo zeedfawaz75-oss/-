@@ -67,7 +67,10 @@ export function analyzeCategoryMatch(
   const sector = findSector(sectorId);
   const sub = findSubsection(sectorId, subsectionId);
   if (!sector || !sub) {
-    return { status: "mismatch", message: "القسم المحدد غير صحيح — يرجى اختيار القطاع والقسم الفرعي." };
+    return {
+      status: "mismatch",
+      message: "القسم المحدد غير صحيح — يرجى اختيار القطاع والقسم الفرعي.",
+    };
   }
 
   const text = normalizeArabic([name, description, ...specialties].join(" "));
@@ -132,7 +135,6 @@ export function validateCategoryMatch(
   if (res.status === "ok") return { ok: true };
   return { ok: false, reason: res.message };
 }
-
 
 export function validatePhone(phone: string): ValidationResult {
   const digits = phone.replace(/\D/g, "");

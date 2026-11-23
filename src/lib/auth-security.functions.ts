@@ -22,38 +22,63 @@ export function isStrongPassword(password: string): boolean {
 const phoneSchema = z.object({ phone: z.string().min(8).max(25) });
 
 export const checkAuthRateLimit = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => phoneSchema.parse(d))
+  .validator((d: unknown) => phoneSchema.parse(d))
   .handler(async ({ data }) => {
     const phone = normalizePhone(data.phone);
-    if (phone.length < 8) return { allowed: false as const, retryAfterSeconds: 60 };
+    if (phone.length < 8) {
+      return { allowed: false as const, retryAfterSeconds: 60 };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const db = supabaseAdmin as any;
     const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-    await db.from("auth_attempts").delete().lt("created_at", cutoff);
-    const { count } = await db
+    const { error: cleanupError } = await supabaseAdmin
+      .from("auth_attempts")
+      .delete()
+      .lt("created_at", cutoff);
+    if (cleanupError) {
+      console.error("[Auth] Failed to clean expired attempts:", cleanupError.code);
+      throw new Error("تعذّر التحقق من محاولات الدخول بسبب مشكلة في قاعدة البيانات.");
+    }
+
+    const { count, error } = await supabaseAdmin
       .from("auth_attempts")
       .select("id", { count: "exact", head: true })
       .eq("phone", phone)
       .eq("outcome", "failure");
+    if (error) {
+      console.error("[Auth] Failed to count login attempts:", error.code);
+      throw new Error("تعذّر التحقق من محاولات الدخول بسبب مشكلة في قاعدة البيانات.");
+    }
+    if (count === null) {
+      console.error("[Auth] Login attempt count was not returned.");
+      throw new Error("تعذّر التحقق من محاولات الدخول بسبب مشكلة في قاعدة البيانات.");
+    }
 
-    const attempts = count ?? 0;
-    if (attempts >= 10) return { allowed: false as const, retryAfterSeconds: 15 * 60 };
+    if (count >= 10) {
+      return { allowed: false as const, retryAfterSeconds: 15 * 60 };
+    }
     return { allowed: true as const, retryAfterSeconds: 0 };
   });
 
 export const recordAuthAttempt = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({
-    phone: z.string().min(8).max(25),
-    success: z.boolean(),
-  }).parse(d))
+  .validator((d: unknown) =>
+    z
+      .object({
+        phone: z.string().min(8).max(25),
+        success: z.boolean(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
     const phone = normalizePhone(data.phone);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const db = supabaseAdmin as any;
-    await db.from("auth_attempts").insert({
+    const { error } = await supabaseAdmin.from("auth_attempts").insert({
       phone,
       outcome: data.success ? "success" : "failure",
     });
+    if (error) {
+      console.error("[Auth] Failed to record login attempt:", error.code);
+      throw new Error("تعذّر تسجيل محاولة الدخول بسبب مشكلة في قاعدة البيانات.");
+    }
     return { ok: true as const };
   });

@@ -16,7 +16,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 
 export const adminApproveShop = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => idSchema.parse(d))
+  .validator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     // Use the caller's RLS client: the shops_before_update trigger checks
@@ -32,7 +32,7 @@ export const adminApproveShop = createServerFn({ method: "POST" })
 
 export const adminRejectShop = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => idSchema.parse(d))
+  .validator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { error } = await context.supabase
@@ -45,7 +45,7 @@ export const adminRejectShop = createServerFn({ method: "POST" })
 
 export const adminDeleteShop = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => idSchema.parse(d))
+  .validator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

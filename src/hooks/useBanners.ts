@@ -31,7 +31,9 @@ export function useBanners() {
         setBanners((data ?? []) as BannerRow[]);
         setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { banners, loading };
@@ -52,7 +54,9 @@ export function useAllBanners() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   return { banners, loading, reload };
 }

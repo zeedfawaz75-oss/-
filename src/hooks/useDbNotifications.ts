@@ -30,7 +30,10 @@ export function useDbNotifications() {
     const { data: u } = await supabase.auth.getUser();
     const uid = u.user?.id ?? null;
     setUserId(uid);
-    if (!uid) { setItems([]); return; }
+    if (!uid) {
+      setItems([]);
+      return;
+    }
     const { data } = await supabase
       .from("notifications")
       .select("id, type, title, body, shop_id, is_read, created_at")
@@ -43,13 +46,20 @@ export function useDbNotifications() {
     load();
     const t = setInterval(load, 60_000);
     const { data: sub } = supabase.auth.onAuthStateChange(() => load());
-    return () => { clearInterval(t); sub.subscription.unsubscribe(); };
+    return () => {
+      clearInterval(t);
+      sub.subscription.unsubscribe();
+    };
   }, [load]);
 
   const markAllRead = useCallback(async () => {
     if (!userId) return;
     setItems((prev) => prev.map((i) => ({ ...i, is_read: true })));
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
   }, [userId]);
 
   const clear = useCallback(async () => {

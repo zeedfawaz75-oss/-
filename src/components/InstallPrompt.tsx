@@ -54,7 +54,11 @@ export default function InstallPrompt() {
 
   const dismiss = () => {
     setVisible(false);
-    try { localStorage.setItem(DISMISS_KEY, "1"); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(DISMISS_KEY, "1");
+    } catch {
+      /* ignore */
+    }
   };
 
   const install = async () => {
@@ -69,11 +73,17 @@ export default function InstallPrompt() {
   return (
     <div className="fixed inset-x-3 bottom-3 z-[60] animate-in fade-in slide-in-from-bottom-4">
       <div className="mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
-        <img src="/icons/icon-192-v2.png?v=2.0" alt="أيقونة دليل مأرب" className="h-11 w-11 rounded-xl" />
+        <img
+          src="/icons/icon-192-v2.png?v=2.0"
+          alt="أيقونة دليل مأرب"
+          className="h-11 w-11 rounded-xl"
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">ثبّت دليل مأرب على شاشتك</p>
           <p className="truncate text-xs text-muted-foreground">
-            {isIos ? "اضغط زر المشاركة ثم «إضافة إلى الشاشة الرئيسية»" : "وصول أسرع وتجربة كتطبيق كامل"}
+            {isIos
+              ? "اضغط زر المشاركة ثم «إضافة إلى الشاشة الرئيسية»"
+              : "وصول أسرع وتجربة كتطبيق كامل"}
           </p>
         </div>
         {isIos ? (
@@ -87,7 +97,11 @@ export default function InstallPrompt() {
             تثبيت
           </button>
         )}
-        <button onClick={dismiss} aria-label="إغلاق" className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary">
+        <button
+          onClick={dismiss}
+          aria-label="إغلاق"
+          className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>

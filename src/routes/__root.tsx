@@ -16,7 +16,6 @@ import InstallPrompt from "../components/InstallPrompt";
 import { OfflineScreen } from "../components/OfflineScreen";
 import { migrateUiVersion } from "../lib/app-version";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -39,11 +38,12 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    const reportedError = error instanceof Error ? error : new Error("An unknown error occurred.");
+    console.error(reportedError);
+    reportLovableError(reportedError, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
@@ -81,20 +81,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover",
+      },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "دليل مأرب" },
       { name: "theme-color", content: "#0f3460" },
       { title: "دليل مأرب التجاري الخدمي الشامل" },
-      { name: "description", content: "المنصة الرقمية الأولى لربط المواطنين بكافة الخدمات والمحلات في محافظة مأرب." },
+      {
+        name: "description",
+        content: "المنصة الرقمية الأولى لربط المواطنين بكافة الخدمات والمحلات في محافظة مأرب.",
+      },
       { property: "og:title", content: "دليل مأرب التجاري الخدمي الشامل" },
-      { property: "og:description", content: "كل القطاعات والمحلات والخدمات في محافظة مأرب بمكان واحد." },
+      {
+        property: "og:description",
+        content: "كل القطاعات والمحلات والخدمات في محافظة مأرب بمكان واحد.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "دليل مأرب التجاري الخدمي الشامل" },
-      { name: "twitter:description", content: "كل القطاعات والمحلات والخدمات في محافظة مأرب بمكان واحد." },
+      {
+        name: "twitter:description",
+        content: "كل القطاعات والمحلات والخدمات في محافظة مأرب بمكان واحد.",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -144,8 +157,7 @@ function RootComponent() {
         dir="rtl"
         toastOptions={{
           classNames: {
-            toast:
-              "!rounded-2xl !border-2 !font-bold !text-[13px] !shadow-elegant",
+            toast: "!rounded-2xl !border-2 !font-bold !text-[13px] !shadow-elegant",
             success: "!bg-emerald-600 !text-white !border-emerald-700 [&_button]:!text-white",
             error: "!bg-red-600 !text-white !border-red-700 [&_button]:!text-white",
             warning: "!bg-red-600 !text-white !border-red-700 [&_button]:!text-white",
@@ -158,4 +170,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

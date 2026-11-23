@@ -30,7 +30,12 @@ const emptyForm = (parent: string | null): FormState => ({
 });
 
 const slugify = (v: string) =>
-  v.trim().toLowerCase().replace(/[^a-z0-9\u0621-\u064A]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  v
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0621-\u064A]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
 
 export function CategoriesManager() {
   const { rows, loading, reload } = useCategories();
@@ -55,9 +60,15 @@ export function CategoriesManager() {
 
   const save = async () => {
     if (!form) return;
-    if (form.title.trim().length < 2) { toast.error("العنوان قصير جداً"); return; }
+    if (form.title.trim().length < 2) {
+      toast.error("العنوان قصير جداً");
+      return;
+    }
     setSaving(true);
-    const keywords = form.keywords.split(/[،,\n]/).map((k) => k.trim()).filter(Boolean);
+    const keywords = form.keywords
+      .split(/[،,\n]/)
+      .map((k) => k.trim())
+      .filter(Boolean);
     const payload = {
       parent_id: form.parent_id,
       title: form.title.trim(),
@@ -91,7 +102,10 @@ export function CategoriesManager() {
   const remove = async (row: CategoryRow) => {
     if (!confirm(`حذف «${row.title}»${row.parent_id ? "" : " وجميع أقسامه الفرعية"}؟`)) return;
     const { error } = await supabase.from("categories").delete().eq("id", row.id);
-    if (error) { toastFail(error); return; }
+    if (error) {
+      toastFail(error);
+      return;
+    }
     toast.success("تم الحذف 🗑");
     await reload();
   };
@@ -119,23 +133,50 @@ export function CategoriesManager() {
               <span className="text-lg">{p.icon}</span>
               <span className="flex-1">{p.title}</span>
               {p.is_hidden && (
-                <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5">مخفي</span>
+                <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5">
+                  مخفي
+                </span>
               )}
               <span className="text-xs text-muted-foreground">{childrenOf(p.id).length} قسم</span>
             </summary>
 
             <div className="flex gap-2 flex-wrap mt-3">
-              <button onClick={() => startEdit(p)} className="text-xs font-bold bg-secondary border border-border rounded-lg px-2.5 py-1">✏️ تعديل</button>
-              <button onClick={() => setForm(emptyForm(p.id))} className="text-xs font-bold bg-secondary border border-border rounded-lg px-2.5 py-1">+ قسم فرعي</button>
-              <button onClick={() => remove(p)} className="text-xs font-bold bg-emergency text-emergency-foreground rounded-lg px-2.5 py-1">🗑 حذف</button>
+              <button
+                onClick={() => startEdit(p)}
+                className="text-xs font-bold bg-secondary border border-border rounded-lg px-2.5 py-1"
+              >
+                ✏️ تعديل
+              </button>
+              <button
+                onClick={() => setForm(emptyForm(p.id))}
+                className="text-xs font-bold bg-secondary border border-border rounded-lg px-2.5 py-1"
+              >
+                + قسم فرعي
+              </button>
+              <button
+                onClick={() => remove(p)}
+                className="text-xs font-bold bg-emergency text-emergency-foreground rounded-lg px-2.5 py-1"
+              >
+                🗑 حذف
+              </button>
             </div>
 
             <ul className="mt-3 divide-y divide-border">
               {childrenOf(p.id).map((c) => (
                 <li key={c.id} className="py-2 flex items-center gap-2">
                   <span className="flex-1 text-sm">{c.title}</span>
-                  <button onClick={() => startEdit(c)} className="text-xs bg-secondary border border-border rounded-lg px-2 py-0.5 font-bold">✏️</button>
-                  <button onClick={() => remove(c)} className="text-xs bg-emergency text-emergency-foreground rounded-lg px-2 py-0.5 font-bold">🗑</button>
+                  <button
+                    onClick={() => startEdit(c)}
+                    className="text-xs bg-secondary border border-border rounded-lg px-2 py-0.5 font-bold"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => remove(c)}
+                    className="text-xs bg-emergency text-emergency-foreground rounded-lg px-2 py-0.5 font-bold"
+                  >
+                    🗑
+                  </button>
                 </li>
               ))}
             </ul>
@@ -144,46 +185,93 @@ export function CategoriesManager() {
       </div>
 
       {form && (
-        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto overscroll-contain" onClick={() => setForm(null)}>
-          <div dir="rtl" onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-card text-foreground rounded-2xl shadow-elegant p-5 space-y-3 max-h-[92dvh] overflow-y-auto overscroll-contain">
+        <div
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto overscroll-contain"
+          onClick={() => setForm(null)}
+        >
+          <div
+            dir="rtl"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-card text-foreground rounded-2xl shadow-elegant p-5 space-y-3 max-h-[92dvh] overflow-y-auto overscroll-contain"
+          >
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-black">
                 {form.isNew ? (form.parent_id ? "قسم فرعي جديد" : "قطاع جديد") : "تعديل القسم"}
               </h3>
               <ModalCloseButton onClose={() => setForm(null)} />
             </div>
-            <label className="block text-xs font-bold">العنوان
-              <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal" />
+            <label className="block text-xs font-bold">
+              العنوان
+              <input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal"
+              />
             </label>
             {!form.parent_id && (
-              <label className="block text-xs font-bold">الأيقونة (إيموجي)
-                <input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal" />
+              <label className="block text-xs font-bold">
+                الأيقونة (إيموجي)
+                <input
+                  value={form.icon}
+                  onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                  className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal"
+                />
               </label>
             )}
             {form.parent_id && (
-              <label className="block text-xs font-bold">الوصف
-                <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal" />
+              <label className="block text-xs font-bold">
+                الوصف
+                <input
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal"
+                />
               </label>
             )}
-            <label className="block text-xs font-bold">كلمات البحث (افصلها بفاصلة)
-              <textarea value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} rows={2} className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal" />
+            <label className="block text-xs font-bold">
+              كلمات البحث (افصلها بفاصلة)
+              <textarea
+                value={form.keywords}
+                onChange={(e) => setForm({ ...form, keywords: e.target.value })}
+                rows={2}
+                className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal"
+              />
             </label>
             <div className="flex items-center gap-3">
-              <label className="text-xs font-bold flex-1">الترتيب
-                <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal" />
+              <label className="text-xs font-bold flex-1">
+                الترتيب
+                <input
+                  type="number"
+                  value={form.sort_order}
+                  onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+                  className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal"
+                />
               </label>
               {!form.parent_id && (
                 <label className="text-xs font-bold flex items-center gap-2 mt-4">
-                  <input type="checkbox" checked={form.is_hidden} onChange={(e) => setForm({ ...form, is_hidden: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    checked={form.is_hidden}
+                    onChange={(e) => setForm({ ...form, is_hidden: e.target.checked })}
+                  />
                   إخفاء من الرئيسية
                 </label>
               )}
             </div>
             <div className="flex gap-2 pt-1">
-              <button disabled={saving} onClick={save} className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 font-bold text-sm disabled:opacity-50">
+              <button
+                disabled={saving}
+                onClick={save}
+                className="flex-1 bg-primary text-primary-foreground rounded-xl py-2.5 font-bold text-sm disabled:opacity-50"
+              >
                 {saving ? "..." : "حفظ"}
               </button>
-              <button onClick={() => setForm(null)} className="flex-1 bg-secondary border border-border rounded-xl py-2.5 font-bold text-sm">إلغاء</button>
+              <button
+                onClick={() => setForm(null)}
+                className="flex-1 bg-secondary border border-border rounded-xl py-2.5 font-bold text-sm"
+              >
+                إلغاء
+              </button>
             </div>
           </div>
         </div>

@@ -32,7 +32,9 @@ async function unregisterApp() {
       const url = r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "";
       if (url.endsWith(APP_SW_PATH)) await r.unregister();
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function activatePwaUpdate(): Promise<boolean> {
@@ -67,7 +69,10 @@ export async function registerPwa(): Promise<(() => void) | undefined> {
     };
     reg.addEventListener("updatefound", watchInstallingWorker);
 
-    const checkForUpdate = () => reg.update().catch(() => { /* offline */ });
+    const checkForUpdate = () =>
+      reg.update().catch(() => {
+        /* offline */
+      });
     const onVisibility = () => {
       if (document.visibilityState === "visible") checkForUpdate();
     };

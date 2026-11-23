@@ -50,7 +50,10 @@ export function ShopCard({ shop, compact = false }: { shop: Shop; compact?: bool
       toast.error("سجّل الدخول لإضافة المحل إلى المفضلة");
       return;
     }
-    notify(fav ? `أُزيل «${shop.name}» من المفضلة` : `أُضيف «${shop.name}» للمفضلة`, fav ? "💔" : "❤️");
+    notify(
+      fav ? `أُزيل «${shop.name}» من المفضلة` : `أُضيف «${shop.name}» للمفضلة`,
+      fav ? "💔" : "❤️",
+    );
   };
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -95,7 +98,9 @@ export function ShopCard({ shop, compact = false }: { shop: Shop; compact?: bool
         <button
           onClick={handleToggleFav}
           aria-label={fav ? "إزالة من المفضلة" : "إضافة للمفضلة"}
-          title={needsAuth ? "سجّل الدخول لحفظ المفضلة" : (fav ? "إزالة من المفضلة" : "إضافة للمفضلة")}
+          title={
+            needsAuth ? "سجّل الدخول لحفظ المفضلة" : fav ? "إزالة من المفضلة" : "إضافة للمفضلة"
+          }
           className={`absolute top-2 left-2 w-9 h-9 grid place-items-center rounded-full backdrop-blur-sm shadow-md transition-all duration-200 ${
             fav ? "bg-emergency text-white" : "bg-white/90 text-emergency hover:bg-white"
           } ${popHeart ? "scale-125" : "scale-100"}`}
@@ -110,7 +115,9 @@ export function ShopCard({ shop, compact = false }: { shop: Shop; compact?: bool
               open ? "bg-primary/95 text-primary-foreground" : "bg-black/60 text-white"
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${open ? "bg-white animate-pulse" : "bg-white/60"}`} />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${open ? "bg-white animate-pulse" : "bg-white/60"}`}
+            />
             {open ? "مفتوح الآن" : "مغلق"}
           </span>
           {isFeatured && (
@@ -146,11 +153,11 @@ export function ShopCard({ shop, compact = false }: { shop: Shop; compact?: bool
                 n <= displayRating ? "text-gold" : "text-muted-foreground/40"
               } hover:scale-110`}
               aria-label={`تقييم ${n}`}
-            >★</button>
+            >
+              ★
+            </button>
           ))}
-          <span className="text-[11px] text-muted-foreground ms-1">
-            {shop.rating.toFixed(1)}
-          </span>
+          <span className="text-[11px] text-muted-foreground ms-1">{shop.rating.toFixed(1)}</span>
         </div>
 
         {shop.address && (
@@ -199,7 +206,10 @@ export function ShopCard({ shop, compact = false }: { shop: Shop; compact?: bool
 
         {showBooking && (
           <button
-            onClick={(e) => { e.stopPropagation(); setBookingOpen(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setBookingOpen(true);
+            }}
             className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black text-white shadow-gold hover:opacity-95 transition-smooth"
             style={{ background: "linear-gradient(135deg,#ff8a00,#e94e1b)" }}
           >

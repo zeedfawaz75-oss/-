@@ -27,9 +27,11 @@ const DEVELOPER_WHATSAPP = "967772878948";
 type RequestInput = { phone: string; fullName: string };
 
 export const checkExistingIdentity = createServerFn({ method: "POST" })
-  .inputValidator((input: RequestInput) => {
+  .validator((input: RequestInput) => {
     const phone = normalizePhone(String(input?.phone ?? ""));
-    const fullName = String(input?.fullName ?? "").trim().slice(0, 100);
+    const fullName = String(input?.fullName ?? "")
+      .trim()
+      .slice(0, 100);
     if (phone.length < 8) throw new Error("رقم جوال غير صحيح");
     if (fullName.length < 2) throw new Error("الرجاء إدخال الاسم الكامل");
     return { phone, fullName };
@@ -39,7 +41,10 @@ export const checkExistingIdentity = createServerFn({ method: "POST" })
     const wantName = normalizeName(data.fullName);
 
     for (let page = 1; page <= 10; page++) {
-      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage: 200,
+      });
       if (error) throw new Error("تعذّر التحقق من رقم الجوال حالياً. حاول مرة أخرى.");
       if (!list?.users?.length) break;
 
@@ -68,13 +73,16 @@ type RegisterInput = { phone: string; fullName: string; password: string };
 
 /** Create a phone account without sending confirmation email to its synthetic address. */
 export const registerWithPhone = createServerFn({ method: "POST" })
-  .inputValidator((input: RegisterInput) => {
+  .validator((input: RegisterInput) => {
     const phone = normalizePhone(String(input?.phone ?? ""));
-    const fullName = String(input?.fullName ?? "").trim().slice(0, 100);
+    const fullName = String(input?.fullName ?? "")
+      .trim()
+      .slice(0, 100);
     const password = String(input?.password ?? "");
     if (!/^7\d{8}$/.test(phone)) throw new Error("الرجاء إدخال رقم جوال يمني صحيح.");
     if (fullName.length < 2) throw new Error("الرجاء إدخال الاسم الكامل.");
-    if (!isStrongPassword(password)) throw new Error("كلمة المرور يجب أن تكون 12 حرفًا وتشمل حروفًا وأرقامًا ورمزًا على الأقل.");
+    if (!isStrongPassword(password))
+      throw new Error("كلمة المرور يجب أن تكون 12 حرفًا وتشمل حروفًا وأرقامًا ورمزًا على الأقل.");
     return { phone, fullName, password };
   })
   .handler(async ({ data }) => {
@@ -82,7 +90,10 @@ export const registerWithPhone = createServerFn({ method: "POST" })
     const wantName = normalizeName(data.fullName);
 
     for (let page = 1; page <= 10; page++) {
-      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage: 200,
+      });
       if (error) throw new Error("تعذّر التحقق من رقم الجوال حالياً. حاول مرة أخرى.");
       if (!list?.users?.length) break;
 
@@ -133,9 +144,11 @@ export const registerWithPhone = createServerFn({ method: "POST" })
  * unauthenticated account-takeover path entirely.
  */
 export const requestPasswordReset = createServerFn({ method: "POST" })
-  .inputValidator((input: RequestInput) => {
+  .validator((input: RequestInput) => {
     const phone = normalizePhone(String(input?.phone ?? ""));
-    const fullName = String(input?.fullName ?? "").trim().slice(0, 100);
+    const fullName = String(input?.fullName ?? "")
+      .trim()
+      .slice(0, 100);
     if (phone.length < 8) throw new Error("رقم جوال غير صحيح");
     if (fullName.length < 2) throw new Error("الرجاء إدخال الاسم الكامل");
     return { phone, fullName };
@@ -149,7 +162,10 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
     let target: { id: string; name: string } | null = null;
 
     for (let page = 1; page <= 10 && !target; page++) {
-      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage: 200,
+      });
       if (error || !list?.users?.length) break;
 
       for (const u of list.users) {

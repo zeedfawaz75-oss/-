@@ -15,11 +15,19 @@ export function ShopThumb({ url, name, className = "", linkable = false }: Props
 
   if (!src) return <div className={`${box} bg-gradient-to-br from-secondary to-muted`} />;
 
-  const img = <img src={src} alt={`صورة ${name}`} loading="lazy" className="w-full h-full object-cover" />;
+  const img = (
+    <img src={src} alt={`صورة ${name}`} loading="lazy" className="w-full h-full object-cover" />
+  );
   if (!linkable) return <div className={box}>{img}</div>;
 
   return (
-    <a href={src} target="_blank" rel="noopener noreferrer" className={box} title="فتح الصورة بالحجم الكامل">
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={box}
+      title="فتح الصورة بالحجم الكامل"
+    >
       {img}
     </a>
   );

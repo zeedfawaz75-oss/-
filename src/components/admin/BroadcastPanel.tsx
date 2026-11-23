@@ -11,7 +11,10 @@ export function BroadcastPanel() {
   const [sending, setSending] = useState(false);
 
   const submit = async () => {
-    if (title.trim().length < 2) { toast.error("اكتب عنوان الإشعار"); return; }
+    if (title.trim().length < 2) {
+      toast.error("اكتب عنوان الإشعار");
+      return;
+    }
     setSending(true);
     try {
       const res = await send({ data: { title: title.trim(), body: body.trim() || null } });
@@ -33,7 +36,8 @@ export function BroadcastPanel() {
           يصل الإشعار فوراً إلى جرس الإشعارات لدى كل مستخدم مسجّل.
         </p>
       </div>
-      <label className="block text-xs font-bold">عنوان الإشعار
+      <label className="block text-xs font-bold">
+        عنوان الإشعار
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -42,7 +46,8 @@ export function BroadcastPanel() {
           className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-normal"
         />
       </label>
-      <label className="block text-xs font-bold">نص الإشعار (اختياري)
+      <label className="block text-xs font-bold">
+        نص الإشعار (اختياري)
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}

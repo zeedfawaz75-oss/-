@@ -18,12 +18,11 @@ export function useFavorites() {
       return;
     }
     setLoading(true);
-    const { data } = await supabase
-      .from("favorites")
-      .select("shop_id")
-      .eq("user_id", uid);
+    const { data } = await supabase.from("favorites").select("shop_id").eq("user_id", uid);
     const next: Record<string, true> = {};
-    (data ?? []).forEach((r) => { next[r.shop_id as string] = true; });
+    (data ?? []).forEach((r) => {
+      next[r.shop_id as string] = true;
+    });
     setFavs(next);
     setLoading(false);
   }, []);
@@ -40,42 +39,53 @@ export function useFavorites() {
       setUser(u);
       load(u?.id ?? null);
     });
-    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [load]);
 
   const isFav = useCallback((id: string) => !!favs[id], [favs]);
 
-  const toggle = useCallback(async (id: string) => {
-    if (!user) return { needsAuth: true as const };
-    const wasFav = !!favs[id];
-    // optimistic
-    setFavs((prev) => {
-      const next = { ...prev };
-      if (wasFav) delete next[id]; else next[id] = true;
-      return next;
-    });
-    if (wasFav) {
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("shop_id", id);
-      if (error) {
-        // rollback
-        setFavs((prev) => ({ ...prev, [id]: true }));
-        return { error: error.message };
+  const toggle = useCallback(
+    async (id: string) => {
+      if (!user) return { needsAuth: true as const };
+      const wasFav = !!favs[id];
+      // optimistic
+      setFavs((prev) => {
+        const next = { ...prev };
+        if (wasFav) delete next[id];
+        else next[id] = true;
+        return next;
+      });
+      if (wasFav) {
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("shop_id", id);
+        if (error) {
+          // rollback
+          setFavs((prev) => ({ ...prev, [id]: true }));
+          return { error: error.message };
+        }
+      } else {
+        const { error } = await supabase
+          .from("favorites")
+          .insert({ user_id: user.id, shop_id: id });
+        if (error) {
+          setFavs((prev) => {
+            const n = { ...prev };
+            delete n[id];
+            return n;
+          });
+          return { error: error.message };
+        }
       }
-    } else {
-      const { error } = await supabase
-        .from("favorites")
-        .insert({ user_id: user.id, shop_id: id });
-      if (error) {
-        setFavs((prev) => { const n = { ...prev }; delete n[id]; return n; });
-        return { error: error.message };
-      }
-    }
-    return { ok: true as const };
-  }, [user, favs]);
+      return { ok: true as const };
+    },
+    [user, favs],
+  );
 
   return { favs, isFav, toggle, loading, needsAuth: !user };
 }

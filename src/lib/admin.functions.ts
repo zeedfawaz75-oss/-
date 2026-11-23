@@ -12,6 +12,20 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (!data) throw new Error("هذه الصفحة للمسؤولين فقط");
 }
 
+async function recordSecurityAction(input: {
+  actor_user_id: string;
+  target_user_id: string;
+  action: string;
+  details: string;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin.from("admin_security_audit").insert(input);
+  if (error) {
+    console.error("[Admin] Failed to save security audit entry:", error.code);
+    throw new Error("تم تنفيذ الإجراء لكن تعذّر حفظه في سجل الأمان.");
+  }
+}
+
 const roleSchema = z.enum(["admin", "moderator", "owner", "user"]);
 
 export const adminListUsers = createServerFn({ method: "POST" })
@@ -43,8 +57,7 @@ export const adminListUsers = createServerFn({ method: "POST" })
         users.push({
           id: u.id,
           label: (u.phone || u.email?.split("@")[0] || "مستخدم") as string,
-          fullName:
-            ((u.user_metadata ?? {}) as { full_name?: string }).full_name?.trim() || "—",
+          fullName: ((u.user_metadata ?? {}) as { full_name?: string }).full_name?.trim() || "—",
           email: u.email ?? null,
           phone:
             u.phone ||
@@ -73,7 +86,7 @@ export const adminListUsers = createServerFn({ method: "POST" })
 /** Replace a user's roles with a single role (or clear them when role is null). */
 export const adminSetUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ userId: z.string().uuid(), role: roleSchema.nullable() }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -82,7 +95,10 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
       throw new Error("لا يمكنك إزالة صلاحية المسؤول عن حسابك");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: delErr } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    const { error: delErr } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.userId);
     if (delErr) throw new Error(delErr.message);
     if (data.role) {
       const { error } = await supabaseAdmin
@@ -91,8 +107,7 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
         .insert({ user_id: data.userId, role: data.role as any });
       if (error) throw new Error(error.message);
     }
-    const db = supabaseAdmin as any;
-    await db.from("admin_security_audit").insert({
+    await recordSecurityAction({
       actor_user_id: context.userId,
       target_user_id: data.userId,
       action: "admin_role_change",
@@ -103,7 +118,7 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
 
 export const adminSetUserBan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ userId: z.string().uuid(), banned: z.boolean() }).parse(d))
+  .validator((d: unknown) => z.object({ userId: z.string().uuid(), banned: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     if (data.userId === context.userId) throw new Error("لا يمكنك حظر حسابك الخاص");
@@ -113,8 +128,7 @@ export const adminSetUserBan = createServerFn({ method: "POST" })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     if (error) throw new Error(error.message);
-    const db = supabaseAdmin as any;
-    await db.from("admin_security_audit").insert({
+    await recordSecurityAction({
       actor_user_id: context.userId,
       target_user_id: data.userId,
       action: data.banned ? "admin_account_ban" : "admin_account_unban",
@@ -124,7 +138,9 @@ export const adminSetUserBan = createServerFn({ method: "POST" })
       user_id: data.userId,
       type: "security",
       title: data.banned ? "تم حظر حسابك ⛔" : "تم رفع الحظر عن حسابك ✅",
-      body: data.banned ? "قام مسؤول بحظر الحساب. تواصل مع الإدارة للمراجعة." : "تمت إعادة تفعيل الحساب بواسطة الإدارة.",
+      body: data.banned
+        ? "قام مسؤول بحظر الحساب. تواصل مع الإدارة للمراجعة."
+        : "تمت إعادة تفعيل الحساب بواسطة الإدارة.",
     });
     return { ok: true };
   });
@@ -132,7 +148,7 @@ export const adminSetUserBan = createServerFn({ method: "POST" })
 /** Admin-only: set a new password for any user. */
 export const adminSetUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ userId: z.string().uuid(), password: z.string().min(12).max(72) }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -143,9 +159,7 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    // The new audit table is applied by migration; cast until generated types are refreshed.
-    const db = supabaseAdmin as any;
-    await db.from("admin_security_audit").insert({
+    await recordSecurityAction({
       actor_user_id: context.userId,
       target_user_id: data.userId,
       action: "admin_password_change",
@@ -165,7 +179,7 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
 /** Broadcast a notification to every registered user. */
 export const adminBroadcast = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         title: z.string().trim().min(2).max(120),

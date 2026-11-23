@@ -59,7 +59,9 @@ export function OtpResend({ cooldown = 60, onResend, label = "إعادة إرس�
   };
 
   const isPostAction = status === "success" || status === "error";
-  const current = isPostAction ? STATUS_MAP[status] : { text: busy ? "جارٍ الإرسال…" : label, color: "", icon: "🔁" };
+  const current = isPostAction
+    ? STATUS_MAP[status]
+    : { text: busy ? "جارٍ الإرسال…" : label, color: "", icon: "🔁" };
 
   return (
     <div className="w-full space-y-2">
@@ -71,10 +73,10 @@ export function OtpResend({ cooldown = 60, onResend, label = "إعادة إرس�
           disabled && !isPostAction
             ? "bg-secondary border-border text-muted-foreground cursor-not-allowed"
             : status === "error"
-            ? "bg-emergency/10 border-emergency text-emergency hover:bg-emergency/20"
-            : status === "success"
-            ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-            : "bg-primary text-primary-foreground border-transparent hover:opacity-90"
+              ? "bg-emergency/10 border-emergency text-emergency hover:bg-emergency/20"
+              : status === "success"
+                ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                : "bg-primary text-primary-foreground border-transparent hover:opacity-90"
         }`}
       >
         {/* Breathing progress fill */}
@@ -86,7 +88,9 @@ export function OtpResend({ cooldown = 60, onResend, label = "إعادة إرس�
           />
         )}
         <span className="relative inline-flex items-center justify-center gap-2">
-          <span className={remaining > 0 && !isPostAction ? "animate-pulse" : ""}>{current.icon}</span>
+          <span className={remaining > 0 && !isPostAction ? "animate-pulse" : ""}>
+            {current.icon}
+          </span>
           {remaining > 0 && !isPostAction ? (
             <>
               <span>يمكنك إعادة الإرسال خلال</span>

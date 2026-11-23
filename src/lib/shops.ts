@@ -2,8 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 
 export interface OpeningHours {
-  open?: string;   // "HH:MM"
-  close?: string;  // "HH:MM"
+  open?: string; // "HH:MM"
+  close?: string; // "HH:MM"
   [key: string]: string | undefined;
 }
 
@@ -73,7 +73,11 @@ export async function fetchApprovedShops(): Promise<Shop[]> {
   if (error) throw error;
   const rows = (data ?? []) as unknown as Shop[];
   if (typeof window !== "undefined") {
-    try { sessionStorage.setItem(APPROVED_CACHE_KEY, JSON.stringify(rows)); } catch { /* ignore */ }
+    try {
+      sessionStorage.setItem(APPROVED_CACHE_KEY, JSON.stringify(rows));
+    } catch {
+      /* ignore */
+    }
   }
   return rows;
 }
@@ -109,11 +113,17 @@ export async function fetchMyShops(userId: string): Promise<Shop[]> {
 export async function uploadShopImage(rawFile: File, ownerId: string): Promise<string> {
   // Always compress before upload so store images stay light.
   const file = await compressImage(rawFile);
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
+  const ext =
+    (file.name.split(".").pop() || "jpg")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+      .slice(0, 5) || "jpg";
   const path = `${ownerId}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage
-    .from("shops-images")
-    .upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type || "image/jpeg" });
+  const { error } = await supabase.storage.from("shops-images").upload(path, file, {
+    cacheControl: "31536000",
+    upsert: false,
+    contentType: file.type || "image/jpeg",
+  });
   if (error) throw new Error(error.message);
   const { data } = supabase.storage.from("shops-images").getPublicUrl(path);
   return data.publicUrl;
@@ -166,21 +176,25 @@ export async function createShop(input: CreateShopInput, ownerId: string) {
     throw new Error("يوجد محل مسجل مسبقاً بنفس الاسم.");
   }
 
-  const { data: created, error } = await supabase.from("shops").insert({
-    owner_id: ownerId,
-    sector_id: input.sector_id,
-    subsection_id: input.subsection_id,
-    name: input.name,
-    description: input.description,
-    phone: input.phone,
-    whatsapp: input.whatsapp || null,
-    address: input.address || null,
-    specialties: (input.specialties ?? []).map((t) => t.trim()).filter(Boolean),
-    is_24_7: !!input.is_24_7,
-    image_url: input.image_url?.trim() || null,
-    map_url: input.map_url?.trim() || null,
-    opening_hours: input.opening_hours ?? null,
-  }).select("id").maybeSingle();
+  const { data: created, error } = await supabase
+    .from("shops")
+    .insert({
+      owner_id: ownerId,
+      sector_id: input.sector_id,
+      subsection_id: input.subsection_id,
+      name: input.name,
+      description: input.description,
+      phone: input.phone,
+      whatsapp: input.whatsapp || null,
+      address: input.address || null,
+      specialties: (input.specialties ?? []).map((t) => t.trim()).filter(Boolean),
+      is_24_7: !!input.is_24_7,
+      image_url: input.image_url?.trim() || null,
+      map_url: input.map_url?.trim() || null,
+      opening_hours: input.opening_hours ?? null,
+    })
+    .select("id")
+    .maybeSingle();
   if (error) {
     if (error.code === "23505") {
       throw new Error("يوجد محل مسجل مسبقاً بنفس الاسم أو رقم الهاتف أو الواتساب.");
@@ -202,7 +216,11 @@ export async function updateOwnShop(id: string, patch: Partial<CreateShopInput>)
   const { bank_name, bank_account_holder, bank_account_number, ...shopPatch } = patch;
   const { error } = await supabase.from("shops").update(shopPatch).eq("id", id);
   if (error) throw new Error(error.message);
-  if (bank_name !== undefined || bank_account_holder !== undefined || bank_account_number !== undefined) {
+  if (
+    bank_name !== undefined ||
+    bank_account_holder !== undefined ||
+    bank_account_number !== undefined
+  ) {
     const { error: bankError } = await supabase.from("shop_bank_details").upsert({
       shop_id: id,
       bank_name: bank_name?.trim() || null,

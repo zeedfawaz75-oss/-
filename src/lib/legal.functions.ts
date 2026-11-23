@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 const slugSchema = z.object({ slug: z.enum(["terms", "privacy"]) });
 const updateSchema = z.object({
@@ -9,7 +11,7 @@ const updateSchema = z.object({
   content: z.string().min(1).max(20000),
 });
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
+async function assertAdmin(context: { supabase: SupabaseClient<Database>; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
@@ -19,7 +21,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 }
 
 export const getLegalPage = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => slugSchema.parse(d))
+  .validator((d: unknown) => slugSchema.parse(d))
   .handler(async ({ data }) => {
     const { createClient } = await import("@supabase/supabase-js");
     const supabasePublic = createClient(
@@ -40,7 +42,7 @@ export const getLegalPage = createServerFn({ method: "POST" })
 
 export const updateLegalPage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => updateSchema.parse(d))
+  .validator((d: unknown) => updateSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { error } = await context.supabase

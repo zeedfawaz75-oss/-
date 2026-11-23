@@ -1,6 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { fetchShopById, fetchShopBankDetails, isShopOpenNow, type Shop, type ShopBankDetails } from "@/lib/shops";
+import {
+  fetchShopById,
+  fetchShopBankDetails,
+  isShopOpenNow,
+  type Shop,
+  type ShopBankDetails,
+} from "@/lib/shops";
 import { BOOKING_SECTORS, findSector, findSubsection } from "@/lib/directory-data";
 import { BookingDialog } from "@/components/BookingDialog";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -35,8 +41,12 @@ function ShopPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchShopBankDetails(id).then((d) => { if (!cancelled) setBank(d); });
-    return () => { cancelled = true; };
+    fetchShopBankDetails(id).then((d) => {
+      if (!cancelled) setBank(d);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const { isFav, toggle: toggleFav, needsAuth } = useFavorites();
@@ -53,7 +63,9 @@ function ShopPage() {
       })
       .catch(() => !cancelled && setNotFound(true))
       .finally(() => !cancelled && setLoading(false));
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) {
@@ -70,7 +82,9 @@ function ShopPage() {
         <div>
           <div className="text-5xl mb-3">😕</div>
           <h1 className="text-lg font-black mb-2">المحل غير موجود</h1>
-          <Link to="/" className="text-primary underline">العودة للرئيسية</Link>
+          <Link to="/" className="text-primary underline">
+            العودة للرئيسية
+          </Link>
         </div>
       </div>
     );
@@ -100,10 +114,15 @@ function ShopPage() {
     `\n\nمن دليل مأرب التجاري الخدمي الشامل`;
 
   const handleToggleFav = async () => {
-    setPopHeart(true); setTimeout(() => setPopHeart(false), 300);
+    setPopHeart(true);
+    setTimeout(() => setPopHeart(false), 300);
     const res = await toggleFav(shop.id);
-    if (res && "needsAuth" in res && res.needsAuth) return toast.error("سجّل الدخول لإضافة المحل إلى المفضلة");
-    notify(fav ? `أُزيل «${shop.name}» من المفضلة` : `أُضيف «${shop.name}» للمفضلة`, fav ? "💔" : "❤️");
+    if (res && "needsAuth" in res && res.needsAuth)
+      return toast.error("سجّل الدخول لإضافة المحل إلى المفضلة");
+    notify(
+      fav ? `أُزيل «${shop.name}» من المفضلة` : `أُضيف «${shop.name}» للمفضلة`,
+      fav ? "💔" : "❤️",
+    );
   };
 
   const handleShare = async () => {
@@ -188,10 +207,14 @@ function ShopPage() {
 
         {/* Badges */}
         <div className="absolute bottom-3 right-3 flex gap-1.5 flex-wrap justify-end">
-          <span className={`inline-flex items-center gap-1 text-xs font-black px-3 py-1 rounded-full backdrop-blur-sm shadow ${
-            open ? "bg-primary text-primary-foreground" : "bg-black/70 text-white"
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${open ? "bg-white animate-pulse" : "bg-white/60"}`} />
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-black px-3 py-1 rounded-full backdrop-blur-sm shadow ${
+              open ? "bg-primary text-primary-foreground" : "bg-black/70 text-white"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${open ? "bg-white animate-pulse" : "bg-white/60"}`}
+            />
             {open ? "مفتوح الآن" : "مغلق"}
           </span>
           {isFeatured && (
@@ -213,7 +236,11 @@ function ShopPage() {
                 aria-label="تكبير صورة المحل"
                 title="اضغط لتكبير الصورة"
               >
-                <img src={imageSrc} alt={`صورة ${shop.name}`} className="w-full h-full object-cover" />
+                <img
+                  src={imageSrc}
+                  alt={`صورة ${shop.name}`}
+                  className="w-full h-full object-cover"
+                />
                 <span className="absolute inset-0 grid place-items-center bg-black/40 text-white text-lg opacity-0 group-hover:opacity-100 transition-opacity">
                   🔍
                 </span>
@@ -239,7 +266,9 @@ function ShopPage() {
                     n <= displayRating ? "text-gold" : "text-muted-foreground/40"
                   }`}
                   aria-label={`تقييم ${n}`}
-                >★</button>
+                >
+                  ★
+                </button>
               ))}
             </div>
             <span className="text-sm font-bold text-muted-foreground">
@@ -250,7 +279,14 @@ function ShopPage() {
           {shop.address && (
             <p className="mt-3 text-sm text-foreground flex items-center gap-1.5">
               <span>📍</span>
-              <a href={mapHref} target="_blank" rel="noopener noreferrer" className="hover:underline">{shop.address}</a>
+              <a
+                href={mapHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                {shop.address}
+              </a>
             </p>
           )}
           {shop.opening_hours?.open && shop.opening_hours?.close && !shop.is_24_7 && (
@@ -268,7 +304,10 @@ function ShopPage() {
           {shop.specialties?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
               {shop.specialties.map((t) => (
-                <span key={t} className="text-xs font-bold bg-gold/15 text-foreground border border-gold/40 rounded-full px-3 py-1">
+                <span
+                  key={t}
+                  className="text-xs font-bold bg-gold/15 text-foreground border border-gold/40 rounded-full px-3 py-1"
+                >
                   #{t}
                 </span>
               ))}
@@ -294,7 +333,9 @@ function ShopPage() {
             <a
               href={hasPhone ? `tel:${shop.phone}` : undefined}
               className={`inline-flex items-center justify-center gap-2 rounded-xl py-3 font-black text-sm text-white transition-smooth ${
-                hasPhone ? "bg-foreground hover:opacity-90" : "bg-muted cursor-not-allowed opacity-60"
+                hasPhone
+                  ? "bg-foreground hover:opacity-90"
+                  : "bg-muted cursor-not-allowed opacity-60"
               }`}
               style={hasPhone ? { color: "hsl(var(--background))" } : undefined}
               aria-disabled={!hasPhone}
@@ -343,10 +384,23 @@ function ShopPage() {
         {bank && (bank.bank_name || bank.bank_account_number) && (
           <div className="mt-4 bg-card rounded-2xl border border-gold/40 p-4 text-sm">
             <div className="font-black text-foreground mb-2">💳 بيانات الحساب البنكي</div>
-            {bank.bank_name && <div><span className="text-muted-foreground">البنك: </span><span className="font-bold">{bank.bank_name}</span></div>}
-            {bank.bank_account_holder && <div><span className="text-muted-foreground">صاحب الحساب: </span><span className="font-bold">{bank.bank_account_holder}</span></div>}
+            {bank.bank_name && (
+              <div>
+                <span className="text-muted-foreground">البنك: </span>
+                <span className="font-bold">{bank.bank_name}</span>
+              </div>
+            )}
+            {bank.bank_account_holder && (
+              <div>
+                <span className="text-muted-foreground">صاحب الحساب: </span>
+                <span className="font-bold">{bank.bank_account_holder}</span>
+              </div>
+            )}
             {bank.bank_account_number && (
-              <div dir="ltr" className="mt-2 font-mono bg-background border border-border rounded-lg p-2 text-center break-all">
+              <div
+                dir="ltr"
+                className="mt-2 font-mono bg-background border border-border rounded-lg p-2 text-center break-all"
+              >
                 {bank.bank_account_number}
               </div>
             )}

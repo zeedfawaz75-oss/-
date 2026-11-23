@@ -41,8 +41,14 @@ export function BookingDialog({ shop, open, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto overscroll-contain" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[92dvh] overflow-y-auto overscroll-contain shadow-elegant relative z-[1]" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto overscroll-contain"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[92dvh] overflow-y-auto overscroll-contain shadow-elegant relative z-[1]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-hero text-primary-foreground p-4 flex items-center justify-between">
           <h2 className="font-black text-base">🗓️ احجز موعداً — {shop.name}</h2>
           <ModalCloseButton onClose={onClose} />
@@ -51,28 +57,66 @@ export function BookingDialog({ shop, open, onClose }: Props) {
         <form onSubmit={submit} className="p-4 space-y-3">
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1">اسمك *</label>
-            <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} maxLength={80} required className="w-full bg-background border border-border rounded-xl p-2 text-sm" />
+            <input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              maxLength={80}
+              required
+              className="w-full bg-background border border-border rounded-xl p-2 text-sm"
+            />
           </div>
           <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">رقم هاتفك *</label>
-            <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} dir="ltr" required className="w-full bg-background border border-border rounded-xl p-2 text-sm" />
+            <label className="block text-xs font-bold text-muted-foreground mb-1">
+              رقم هاتفك *
+            </label>
+            <input
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              dir="ltr"
+              required
+              className="w-full bg-background border border-border rounded-xl p-2 text-sm"
+            />
           </div>
           <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">التاريخ / الوقت *</label>
-            <input value={datetime} onChange={(e) => setDatetime(e.target.value)} placeholder="مثال: غداً الساعة 5 عصراً" required className="w-full bg-background border border-border rounded-xl p-2 text-sm" />
+            <label className="block text-xs font-bold text-muted-foreground mb-1">
+              التاريخ / الوقت *
+            </label>
+            <input
+              value={datetime}
+              onChange={(e) => setDatetime(e.target.value)}
+              placeholder="مثال: غداً الساعة 5 عصراً"
+              required
+              className="w-full bg-background border border-border rounded-xl p-2 text-sm"
+            />
           </div>
           <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">تفاصيل الطلب / الحجز *</label>
-            <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} maxLength={500} required className="w-full bg-background border border-border rounded-xl p-2 text-sm" />
+            <label className="block text-xs font-bold text-muted-foreground mb-1">
+              تفاصيل الطلب / الحجز *
+            </label>
+            <textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              rows={3}
+              maxLength={500}
+              required
+              className="w-full bg-background border border-border rounded-xl p-2 text-sm"
+            />
           </div>
 
-          {error && <div className="bg-emergency/10 border border-emergency/30 text-emergency text-sm rounded-xl p-3">{error}</div>}
+          {error && (
+            <div className="bg-emergency/10 border border-emergency/30 text-emergency text-sm rounded-xl p-3">
+              {error}
+            </div>
+          )}
 
           <div className="bg-secondary/50 border border-border rounded-xl p-3 text-[11px] text-muted-foreground">
             ℹ️ سيتم فتح واتساب بنص الرسالة جاهز — تأكد من إرسالها لصاحب المحل.
           </div>
 
-          <button type="submit" className="w-full bg-gold-gradient text-gold-foreground rounded-xl py-3 font-bold shadow-gold inline-flex items-center justify-center gap-2">
+          <button
+            type="submit"
+            className="w-full bg-gold-gradient text-gold-foreground rounded-xl py-3 font-bold shadow-gold inline-flex items-center justify-center gap-2"
+          >
             💬 إرسال الطلب عبر واتساب
           </button>
         </form>

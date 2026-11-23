@@ -2,7 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Sector } from "@/lib/directory-data";
 import { useCategories } from "@/hooks/useCategories";
-import { fetchApprovedShops, fetchShopsBySubsection, readCachedApprovedShops, type Shop } from "@/lib/shops";
+import {
+  fetchApprovedShops,
+  fetchShopsBySubsection,
+  readCachedApprovedShops,
+  type Shop,
+} from "@/lib/shops";
 import { fuzzyIncludes } from "@/lib/shop-validation";
 import { ShopCard } from "@/components/ShopCard";
 import { ShopGrid } from "@/components/ShopGrid";
@@ -15,12 +20,48 @@ import { AdsSlider } from "@/components/AdsSlider";
 import type { User } from "@supabase/supabase-js";
 
 // Quick services — horizontal scroll strip on the home screen
-const QUICK_SERVICES: { id: string; label: string; icon: string; sectorId: string; subId?: string }[] = [
-  { id: "qs-emergency", label: "الطوارئ", icon: "🚑", sectorId: "emergency-health", subId: "emergency" },
-  { id: "qs-pharmacy", label: "صيدليات", icon: "💊", sectorId: "emergency-health", subId: "clinics-pharmacies" },
-  { id: "qs-hospitals", label: "مستشفيات", icon: "🏥", sectorId: "emergency-health", subId: "hospitals" },
-  { id: "qs-restaurants", label: "مطاعم", icon: "🍽️", sectorId: "food-services", subId: "main-meals" },
-  { id: "qs-fastfood", label: "وجبات سريعة", icon: "🍔", sectorId: "food-services", subId: "fast-food" },
+const QUICK_SERVICES: {
+  id: string;
+  label: string;
+  icon: string;
+  sectorId: string;
+  subId?: string;
+}[] = [
+  {
+    id: "qs-emergency",
+    label: "الطوارئ",
+    icon: "🚑",
+    sectorId: "emergency-health",
+    subId: "emergency",
+  },
+  {
+    id: "qs-pharmacy",
+    label: "صيدليات",
+    icon: "💊",
+    sectorId: "emergency-health",
+    subId: "clinics-pharmacies",
+  },
+  {
+    id: "qs-hospitals",
+    label: "مستشفيات",
+    icon: "🏥",
+    sectorId: "emergency-health",
+    subId: "hospitals",
+  },
+  {
+    id: "qs-restaurants",
+    label: "مطاعم",
+    icon: "🍽️",
+    sectorId: "food-services",
+    subId: "main-meals",
+  },
+  {
+    id: "qs-fastfood",
+    label: "وجبات سريعة",
+    icon: "🍔",
+    sectorId: "food-services",
+    subId: "fast-food",
+  },
   { id: "qs-bakery", label: "مخابز", icon: "🥖", sectorId: "food-services", subId: "bakeries" },
   { id: "qs-mechanic", label: "ميكانيك", icon: "🔧", sectorId: "cars", subId: "mechanic-elec" },
   { id: "qs-transport", label: "نقل وسفر", icon: "✈️", sectorId: "transport-travel" },
@@ -30,22 +71,28 @@ const QUICK_SERVICES: { id: string; label: string; icon: string; sectorId: strin
   { id: "qs-banks", label: "بنوك وصرافة", icon: "🏦", sectorId: "finance", subId: "exchange" },
 ];
 
-
-
-
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "دليل مأرب التجاري الخدمي الشامل" },
-      { name: "description", content: "دليل مأرب التجاري الخدمي الشامل: المنصة الرقمية الأولى لربط المواطنين بكافة الخدمات والمحلات في محافظة مأرب." },
+      {
+        name: "description",
+        content:
+          "دليل مأرب التجاري الخدمي الشامل: المنصة الرقمية الأولى لربط المواطنين بكافة الخدمات والمحلات في محافظة مأرب.",
+      },
       { property: "og:title", content: "دليل مأرب التجاري الخدمي الشامل" },
-      { property: "og:description", content: "كل القطاعات والمحلات والخدمات في محافظة مأرب بمكان واحد." },
+      {
+        property: "og:description",
+        content: "كل القطاعات والمحلات والخدمات في محافظة مأرب بمكان واحد.",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Aref+Ruqaa:wght@400;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Aref+Ruqaa:wght@400;700&display=swap",
+      },
     ],
   }),
   component: DirectoryPage,
@@ -61,7 +108,6 @@ function DirectoryPage() {
   const [addPrefill, setAddPrefill] = useState<{ sectorId?: string; subId?: string }>({});
   const { sectors: SECTORS_DB, visibleSectors: VISIBLE_SECTORS_DB } = useCategories();
 
-
   const activeSector = useMemo(
     () => SECTORS_DB.find((s) => s.id === activeSectorId) ?? null,
     [activeSectorId, SECTORS_DB],
@@ -70,7 +116,9 @@ function DirectoryPage() {
   // Load auth state
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
+      setUser(session?.user ?? null),
+    );
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -83,28 +131,28 @@ function DirectoryPage() {
       setShops([]);
     }
   };
-  useEffect(() => { reloadShops(); }, []);
+  useEffect(() => {
+    reloadShops();
+  }, []);
 
   // Global search across sectors, subsections, keywords and descriptions
   const filteredSectors = useMemo(() => {
     const q = query.trim();
     if (!q) return VISIBLE_SECTORS_DB;
-    return VISIBLE_SECTORS_DB
-      .map((s) => {
-        const sectorMatch =
-          fuzzyIncludes(s.title, q) || (s.keywords ?? []).some((k) => fuzzyIncludes(k, q));
-        const matchedSubs = s.subsections.filter(
-          (sub) =>
-            fuzzyIncludes(sub.title, q) ||
-            (sub.description && fuzzyIncludes(sub.description, q)) ||
-            (sub.keywords ?? []).some((k) => fuzzyIncludes(k, q)),
-        );
-        if (sectorMatch || matchedSubs.length > 0) {
-          return { ...s, subsections: matchedSubs.length > 0 ? matchedSubs : s.subsections };
-        }
-        return null;
-      })
-      .filter(Boolean) as Sector[];
+    return VISIBLE_SECTORS_DB.map((s) => {
+      const sectorMatch =
+        fuzzyIncludes(s.title, q) || (s.keywords ?? []).some((k) => fuzzyIncludes(k, q));
+      const matchedSubs = s.subsections.filter(
+        (sub) =>
+          fuzzyIncludes(sub.title, q) ||
+          (sub.description && fuzzyIncludes(sub.description, q)) ||
+          (sub.keywords ?? []).some((k) => fuzzyIncludes(k, q)),
+      );
+      if (sectorMatch || matchedSubs.length > 0) {
+        return { ...s, subsections: matchedSubs.length > 0 ? matchedSubs : s.subsections };
+      }
+      return null;
+    }).filter(Boolean) as Sector[];
   }, [query, VISIBLE_SECTORS_DB]);
 
   // Global shop search — never scoped, matches names, activities, sectors and sections
@@ -162,88 +210,90 @@ function DirectoryPage() {
     setAddOpen(true);
   };
 
-
   return (
     <div className="min-h-screen">
       <SplashScreen />
 
       {/* Hero header + quick services — scroll naturally with the page */}
       <div>
-      {/* Hero header with realistic Marib background image */}
-      <header className="relative text-primary-foreground shadow-elegant overflow-hidden">
+        {/* Hero header with realistic Marib background image */}
+        <header className="relative text-primary-foreground shadow-elegant overflow-hidden">
+          {/* Background image — Marib landscape (desert oasis / historic ruins) */}
+          <img
+            src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1800&q=75"
+            alt="محافظة مأرب"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+          />
+          {/* Brand-tinted overlay to keep contrast + preserve identity */}
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(15,52,96,0.88) 0%, rgba(22,33,62,0.82) 55%, rgba(15,52,96,0.9) 100%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-24"
+            style={{ background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.35))" }}
+          />
 
-        {/* Background image — Marib landscape (desert oasis / historic ruins) */}
-        <img
-          src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1800&q=75"
-          alt="محافظة مأرب"
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-        />
-        {/* Brand-tinted overlay to keep contrast + preserve identity */}
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(15,52,96,0.88) 0%, rgba(22,33,62,0.82) 55%, rgba(15,52,96,0.9) 100%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 h-24"
-          style={{ background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.35))" }}
-        />
-
-        <div className="relative max-w-6xl mx-auto px-4 py-4 sm:py-6">
-          {/* Header action bar — unified glass toolbar */}
-          <div className="mb-3">
-            <HeaderActions />
-          </div>
-
-          <div className="mb-3 flex justify-center">
-            <InstallButton />
-          </div>
-
-          <button
-            onClick={goHome}
-            className="block w-full text-center group transition-smooth"
-            aria-label="العودة للرئيسية"
-          >
-            <div className="inline-flex items-center justify-center gap-3 mb-2">
-              <span className="text-3xl sm:text-4xl">🕌</span>
-              <h1 className="text-xl sm:text-3xl font-black tracking-tight">دليل مأرب التجاري الخدمي الشامل</h1>
-              <span className="text-3xl sm:text-4xl">🕌</span>
+          <div className="relative max-w-6xl mx-auto px-4 py-4 sm:py-6">
+            {/* Header action bar — unified glass toolbar */}
+            <div className="mb-3">
+              <HeaderActions />
             </div>
-            <div className="h-0.5 w-24 mx-auto bg-gold-gradient rounded-full mb-2" />
-            <p className="text-sm sm:text-base text-primary-foreground/90 font-medium">
-              بوابتك الأولى لاكتشاف محلات وخدمات المحافظة
-            </p>
-            <div className="mt-2 inline-flex items-center justify-center gap-2 text-xs sm:text-sm text-primary-foreground/85 bg-white/10 backdrop-blur rounded-full px-3 py-1 border border-white/15">
-              <span aria-hidden>📍</span>
-              <span className="font-bold">محافظة مأرب — اليمن</span>
-              <span aria-hidden>🇾🇪</span>
-            </div>
-          </button>
 
-          {/* Search */}
-          <div className="mt-6 max-w-2xl mx-auto">
-            <div className="relative">
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="ابحث عن أي شيء: محل، خدمة، قسم، أو نشاط..."
-                className="w-full rounded-2xl bg-card text-foreground placeholder:text-muted-foreground py-3 pr-12 pl-4 text-sm sm:text-base font-medium shadow-soft outline-none border border-border focus:ring-2 focus:ring-gold transition-smooth"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
+            <div className="mb-3 flex justify-center">
+              <InstallButton />
             </div>
-            {query.trim() && (
-              <p className="mt-2 text-xs text-primary-foreground/90 text-center">
-                🔎 بحث شامل في كل القطاعات والأقسام والمحلات
+
+            <button
+              onClick={goHome}
+              className="block w-full text-center group transition-smooth"
+              aria-label="العودة للرئيسية"
+            >
+              <div className="inline-flex items-center justify-center gap-3 mb-2">
+                <span className="text-3xl sm:text-4xl">🕌</span>
+                <h1 className="text-xl sm:text-3xl font-black tracking-tight">
+                  دليل مأرب التجاري الخدمي الشامل
+                </h1>
+                <span className="text-3xl sm:text-4xl">🕌</span>
+              </div>
+              <div className="h-0.5 w-24 mx-auto bg-gold-gradient rounded-full mb-2" />
+              <p className="text-sm sm:text-base text-primary-foreground/90 font-medium">
+                بوابتك الأولى لاكتشاف محلات وخدمات المحافظة
               </p>
-            )}
+              <div className="mt-2 inline-flex items-center justify-center gap-2 text-xs sm:text-sm text-primary-foreground/85 bg-white/10 backdrop-blur rounded-full px-3 py-1 border border-white/15">
+                <span aria-hidden>📍</span>
+                <span className="font-bold">محافظة مأرب — اليمن</span>
+                <span aria-hidden>🇾🇪</span>
+              </div>
+            </button>
+
+            {/* Search */}
+            <div className="mt-6 max-w-2xl mx-auto">
+              <div className="relative">
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="ابحث عن أي شيء: محل، خدمة، قسم، أو نشاط..."
+                  className="w-full rounded-2xl bg-card text-foreground placeholder:text-muted-foreground py-3 pr-12 pl-4 text-sm sm:text-base font-medium shadow-soft outline-none border border-border focus:ring-2 focus:ring-gold transition-smooth"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  🔍
+                </span>
+              </div>
+              {query.trim() && (
+                <p className="mt-2 text-xs text-primary-foreground/90 text-center">
+                  🔎 بحث شامل في كل القطاعات والأقسام والمحلات
+                </p>
+              )}
+            </div>
           </div>
-        </div>
         </header>
 
         {/* Ads + quick services scroll normally with the page */}
@@ -256,7 +306,10 @@ function DirectoryPage() {
                 <h2 className="text-base font-bold">⚡ خدمات سريعة</h2>
                 <div className="flex-1 h-px bg-gold-gradient opacity-40" />
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: "thin" }}>
+              <div
+                className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory"
+                style={{ scrollbarWidth: "thin" }}
+              >
                 {QUICK_SERVICES.map((q) => (
                   <button
                     key={q.id}
@@ -264,7 +317,9 @@ function DirectoryPage() {
                     className="snap-start shrink-0 w-20 h-20 rounded-2xl bg-card border border-border shadow-soft hover:shadow-elegant transition-smooth flex flex-col items-center justify-center gap-1 p-2"
                   >
                     <span className="text-2xl">{q.icon}</span>
-                    <span className="text-[10px] font-bold text-foreground text-center leading-tight">{q.label}</span>
+                    <span className="text-[10px] font-bold text-foreground text-center leading-tight">
+                      {q.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -273,17 +328,20 @@ function DirectoryPage() {
         </div>
       </div>
 
-      <main ref={scrollRef} className="max-w-6xl w-full mx-auto px-4 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]">
-
-
-
-
+      <main
+        ref={scrollRef}
+        className="max-w-6xl w-full mx-auto px-4 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]"
+      >
         {/* Search results (shops) — visible when query active */}
         {query.trim() && searchedShops.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-lg font-bold mb-3">نتائج المحلات <span className="text-gold">({searchedShops.length})</span></h2>
+            <h2 className="text-lg font-bold mb-3">
+              نتائج المحلات <span className="text-gold">({searchedShops.length})</span>
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {searchedShops.map((s) => <ShopCard key={s.id} shop={s} />)}
+              {searchedShops.map((s) => (
+                <ShopCard key={s.id} shop={s} />
+              ))}
             </div>
           </section>
         )}
@@ -293,7 +351,9 @@ function DirectoryPage() {
           <section className="mb-8 bg-card rounded-2xl p-8 text-center shadow-soft border border-border">
             <div className="text-4xl mb-2">🔎</div>
             <p className="text-foreground font-bold mb-1">عذراً، لم يتم العثور على نتائج.</p>
-            <p className="text-sm text-muted-foreground">حاول البحث عن اسم القطاع أو القسم أو المحل.</p>
+            <p className="text-sm text-muted-foreground">
+              حاول البحث عن اسم القطاع أو القسم أو المحل.
+            </p>
           </section>
         )}
 
@@ -305,21 +365,27 @@ function DirectoryPage() {
             onAdd={() => openAdd(activeSector.id, activeSubId)}
           />
         ) : !query.trim() && activeSector ? (
-          <SubSectionsView sector={activeSector} onBack={goHome} onPick={(subId) => setActiveSubId(subId)} onAdd={(subId) => openAdd(activeSector.id, subId)} />
+          <SubSectionsView
+            sector={activeSector}
+            onBack={goHome}
+            onPick={(subId) => setActiveSubId(subId)}
+            onAdd={(subId) => openAdd(activeSector.id, subId)}
+          />
         ) : (
           <>
-
-
-
             {/* General services — big banner */}
             {!query.trim() && (
               <section className="mb-8">
                 <button
                   onClick={() => jumpTo("misc")}
                   className="w-full text-right rounded-2xl overflow-hidden shadow-elegant relative p-6 sm:p-7"
-                  style={{ background: "linear-gradient(135deg,#0f3460 0%,#16213e 50%,#c9a84c 110%)" }}
+                  style={{
+                    background: "linear-gradient(135deg,#0f3460 0%,#16213e 50%,#c9a84c 110%)",
+                  }}
                 >
-                  <span className="absolute -left-4 -bottom-6 text-[9rem] opacity-15 select-none">💼</span>
+                  <span className="absolute -left-4 -bottom-6 text-[9rem] opacity-15 select-none">
+                    💼
+                  </span>
                   <div className="relative">
                     <span className="inline-block text-[10px] font-black bg-white/20 backdrop-blur text-white rounded-full px-2.5 py-1 border border-white/25 mb-3">
                       جديد
@@ -403,14 +469,12 @@ function DirectoryPage() {
         )}
       </main>
 
-
-
       <footer className="mt-16 px-4 max-w-3xl mx-auto text-center space-y-4">
         <div className="h-px max-w-xs mx-auto bg-gold-gradient opacity-60" />
         <p className="text-sm text-foreground/80 leading-relaxed">
-          <span className="font-bold text-primary">دليل مأرب التجاري الخدمي الشامل:</span>{" "}
-          المنصة الرقمية الشاملة والأولى لربط المواطنين بكافة الخدمات والمحلات
-          في محافظة مأرب التاريخية بسهولة، سرعة، وأمان.
+          <span className="font-bold text-primary">دليل مأرب التجاري الخدمي الشامل:</span> المنصة
+          الرقمية الشاملة والأولى لربط المواطنين بكافة الخدمات والمحلات في محافظة مأرب التاريخية
+          بسهولة، سرعة، وأمان.
         </p>
         <div className="inline-flex flex-col items-center gap-1 bg-card-gradient arabesque-border rounded-2xl px-5 py-3 shadow-soft">
           <span className="text-[10px] text-muted-foreground tracking-widest">تطوير وإشراف</span>
@@ -428,8 +492,6 @@ function DirectoryPage() {
 
       {/* Add-shop FAB removed from home per product decision — accessible via subsection views and admin. */}
 
-
-
       <AddShopDialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
@@ -444,30 +506,53 @@ function DirectoryPage() {
 // High-quality topical photos from Unsplash (free hotlinking).
 // Each background sets the mood for a sector; bold overlay keeps text readable.
 const SECTOR_IMAGES: Record<string, string> = {
-  electronics: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=70",
-  construction: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1200&q=70",
-  finance: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1200&q=70",
-  workshops: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=1200&q=70",
-  "food-trade": "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=70",
-  fashion: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=70",
-  "emergency-health": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=1200&q=70",
-  "education-training": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=70",
-  sports: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1200&q=70",
-  beauty: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=70",
+  electronics:
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=70",
+  construction:
+    "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1200&q=70",
+  finance:
+    "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1200&q=70",
+  workshops:
+    "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=1200&q=70",
+  "food-trade":
+    "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=70",
+  fashion:
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=70",
+  "emergency-health":
+    "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=1200&q=70",
+  "education-training":
+    "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=70",
+  sports:
+    "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1200&q=70",
+  beauty:
+    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=70",
   cars: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=70",
-  hospitality: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=70",
-  "food-services": "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=70",
+  hospitality:
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=70",
+  "food-services":
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=70",
   // الحراج والأسواق الشعبية — سوق تقليدي مفتوح
-  haraj: "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?auto=format&fit=crop&w=1200&q=70",
+  haraj:
+    "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?auto=format&fit=crop&w=1200&q=70",
   // الزراعة والثروة الحيوانية — حقول ومحاصيل
-  "agri-vet": "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=70",
+  "agri-vet":
+    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=70",
   // النقل والسفر — طائرة/طريق
-  "transport-travel": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=70",
+  "transport-travel":
+    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=70",
   // خدمات عامة ومتنوعة — عمّال خدمات
   misc: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=70",
 };
 
-function SectorsView({ sectors, onSelect, query }: { sectors: Sector[]; onSelect: (id: string) => void; query: string }) {
+function SectorsView({
+  sectors,
+  onSelect,
+  query,
+}: {
+  sectors: Sector[];
+  onSelect: (id: string) => void;
+  query: string;
+}) {
   return (
     <section>
       <div className="flex items-baseline justify-between mb-5">
@@ -544,20 +629,37 @@ function SectorsView({ sectors, onSelect, query }: { sectors: Sector[]; onSelect
   );
 }
 
-
-function SubSectionsView({ sector, onBack, onPick, onAdd }: { sector: Sector; onBack: () => void; onPick: (subId: string) => void; onAdd: (subId: string) => void }) {
+function SubSectionsView({
+  sector,
+  onBack,
+  onPick,
+  onAdd,
+}: {
+  sector: Sector;
+  onBack: () => void;
+  onPick: (subId: string) => void;
+  onAdd: (subId: string) => void;
+}) {
   return (
     <section className="animate-scale-in">
       <div className="flex items-center justify-between mb-5 gap-3">
-        <button onClick={onBack} className="inline-flex items-center gap-2 bg-card border border-border text-primary font-bold rounded-xl px-4 py-2.5 shadow-soft hover:shadow-elegant hover:bg-accent transition-smooth">
-          <span>🔙</span><span className="text-sm">عودة للقطاعات</span>
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 bg-card border border-border text-primary font-bold rounded-xl px-4 py-2.5 shadow-soft hover:shadow-elegant hover:bg-accent transition-smooth"
+        >
+          <span>🔙</span>
+          <span className="text-sm">عودة للقطاعات</span>
         </button>
-        <span className="text-xs text-muted-foreground hidden sm:block">{sector.subsections.length} قسم تخصصي</span>
+        <span className="text-xs text-muted-foreground hidden sm:block">
+          {sector.subsections.length} قسم تخصصي
+        </span>
       </div>
 
       <div className="bg-hero text-primary-foreground rounded-2xl p-5 sm:p-6 shadow-elegant mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gold-gradient grid place-items-center text-3xl shadow-gold">{sector.icon}</div>
+          <div className="w-14 h-14 rounded-2xl bg-gold-gradient grid place-items-center text-3xl shadow-gold">
+            {sector.icon}
+          </div>
           <div className="flex-1">
             <p className="text-xs text-primary-foreground/75 mb-1">القطاع المختار</p>
             <h2 className="text-base sm:text-xl font-black leading-snug">{sector.title}</h2>
@@ -567,17 +669,31 @@ function SubSectionsView({ sector, onBack, onPick, onAdd }: { sector: Sector; on
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sector.subsections.map((sub, i) => (
-          <article key={sub.id} className="bg-card rounded-2xl p-5 shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-smooth animate-fade-in-up border border-border" style={{ animationDelay: `${i * 50}ms` }}>
+          <article
+            key={sub.id}
+            className="bg-card rounded-2xl p-5 shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-smooth animate-fade-in-up border border-border"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
             <div className="flex items-start gap-3">
               <div className="shrink-0 mt-1 w-2 h-10 rounded-full bg-gold-gradient" />
               <div className="flex-1">
                 <h3 className="font-bold text-foreground leading-snug">{sub.title}</h3>
-                {sub.description && <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{sub.description}</p>}
+                {sub.description && (
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                    {sub.description}
+                  </p>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={() => onPick(sub.id)} className="text-xs bg-primary text-primary-foreground rounded-full px-3 py-1.5 font-bold">
+                  <button
+                    onClick={() => onPick(sub.id)}
+                    className="text-xs bg-primary text-primary-foreground rounded-full px-3 py-1.5 font-bold"
+                  >
                     عرض المحلات →
                   </button>
-                  <button onClick={() => onAdd(sub.id)} className="text-xs bg-gold-gradient text-gold-foreground rounded-full px-3 py-1.5 font-bold">
+                  <button
+                    onClick={() => onAdd(sub.id)}
+                    className="text-xs bg-gold-gradient text-gold-foreground rounded-full px-3 py-1.5 font-bold"
+                  >
                     + أضف محلك في هذا القسم
                   </button>
                 </div>
@@ -590,7 +706,17 @@ function SubSectionsView({ sector, onBack, onPick, onAdd }: { sector: Sector; on
   );
 }
 
-function SubsectionShopsView({ sector, subId, onBack, onAdd }: { sector: Sector; subId: string; onBack: () => void; onAdd: () => void }) {
+function SubsectionShopsView({
+  sector,
+  subId,
+  onBack,
+  onAdd,
+}: {
+  sector: Sector;
+  subId: string;
+  onBack: () => void;
+  onAdd: () => void;
+}) {
   const sub = sector.subsections.find((s) => s.id === subId);
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -606,16 +732,25 @@ function SubsectionShopsView({ sector, subId, onBack, onAdd }: { sector: Sector;
   return (
     <section className="animate-scale-in">
       <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-        <button onClick={onBack} className="inline-flex items-center gap-2 bg-card border border-border text-primary font-bold rounded-xl px-4 py-2.5 shadow-soft">
-          <span>🔙</span><span className="text-sm">عودة للأقسام</span>
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 bg-card border border-border text-primary font-bold rounded-xl px-4 py-2.5 shadow-soft"
+        >
+          <span>🔙</span>
+          <span className="text-sm">عودة للأقسام</span>
         </button>
-        <button onClick={onAdd} className="inline-flex items-center gap-2 bg-gold-gradient text-gold-foreground font-bold rounded-xl px-4 py-2.5 shadow-gold">
+        <button
+          onClick={onAdd}
+          className="inline-flex items-center gap-2 bg-gold-gradient text-gold-foreground font-bold rounded-xl px-4 py-2.5 shadow-gold"
+        >
           + أضف محلك في هذا القسم
         </button>
       </div>
 
       <div className="bg-hero text-primary-foreground rounded-2xl p-5 shadow-elegant mb-6">
-        <p className="text-xs opacity-75 mb-1">{sector.icon} {sector.title}</p>
+        <p className="text-xs opacity-75 mb-1">
+          {sector.icon} {sector.title}
+        </p>
         <h2 className="text-lg sm:text-xl font-black">{sub?.title}</h2>
       </div>
 
@@ -624,11 +759,18 @@ function SubsectionShopsView({ sector, subId, onBack, onAdd }: { sector: Sector;
       ) : shops.length === 0 ? (
         <div className="bg-card rounded-2xl p-8 text-center shadow-soft border border-border">
           <p className="text-muted-foreground mb-4">لا توجد محلات معتمدة في هذا القسم حتى الآن.</p>
-          <button onClick={onAdd} className="bg-gold-gradient text-gold-foreground rounded-xl px-5 py-2 font-bold">+ كن أول من يُسجل محلاً</button>
+          <button
+            onClick={onAdd}
+            className="bg-gold-gradient text-gold-foreground rounded-xl px-5 py-2 font-bold"
+          >
+            + كن أول من يُسجل محلاً
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {shops.map((s) => <ShopCard key={s.id} shop={s} />)}
+          {shops.map((s) => (
+            <ShopCard key={s.id} shop={s} />
+          ))}
         </div>
       )}
     </section>

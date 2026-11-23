@@ -16,7 +16,11 @@ export function SplashScreen() {
 
     // Repeat navigation within the same session → dismiss instantly, no flash.
     let seen = false;
-    try { seen = sessionStorage.getItem(KEY) === "1"; } catch { /* ignore */ }
+    try {
+      seen = sessionStorage.getItem(KEY) === "1";
+    } catch {
+      /* ignore */
+    }
     if (seen) {
       setShow(false);
       return;
@@ -30,7 +34,11 @@ export function SplashScreen() {
         setFading(true);
         setTimeout(() => {
           if (cancelled) return;
-          try { sessionStorage.setItem(KEY, "1"); } catch { /* ignore */ }
+          try {
+            sessionStorage.setItem(KEY, "1");
+          } catch {
+            /* ignore */
+          }
           setShow(false);
         }, 350);
       }, wait);
@@ -44,7 +52,10 @@ export function SplashScreen() {
       .catch(finish)
       .finally(() => clearTimeout(guard));
 
-    return () => { cancelled = true; clearTimeout(guard); };
+    return () => {
+      cancelled = true;
+      clearTimeout(guard);
+    };
   }, []);
 
   if (!show) return null;
@@ -86,14 +97,23 @@ export function SplashScreen() {
           مرحباً بك في دليل مأرب الخدمي
         </h1>
         <p className="text-sm leading-relaxed max-w-md" style={{ color: "#fdf3d7" }}>
-          دليل مأرب الخدمي الشامل: بوابتك الرقمية للوصول إلى كافة الخدمات والمحلات
-          في محافظة مأرب بسهولة، سرعة، وأمان.
+          دليل مأرب الخدمي الشامل: بوابتك الرقمية للوصول إلى كافة الخدمات والمحلات في محافظة مأرب
+          بسهولة، سرعة، وأمان.
         </p>
-        <div className="h-0.5 w-24 rounded-full" style={{ background: "linear-gradient(90deg,transparent,#f7e3a8,transparent)" }} />
+        <div
+          className="h-0.5 w-24 rounded-full"
+          style={{ background: "linear-gradient(90deg,transparent,#f7e3a8,transparent)" }}
+        />
         <div className="flex gap-1.5 mt-1">
           <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#f7e3a8" }} />
-          <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#f7e3a8", animationDelay: "150ms" }} />
-          <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#f7e3a8", animationDelay: "300ms" }} />
+          <span
+            className="w-2 h-2 rounded-full animate-pulse"
+            style={{ background: "#f7e3a8", animationDelay: "150ms" }}
+          />
+          <span
+            className="w-2 h-2 rounded-full animate-pulse"
+            style={{ background: "#f7e3a8", animationDelay: "300ms" }}
+          />
         </div>
       </div>
 

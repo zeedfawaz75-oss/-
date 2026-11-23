@@ -1,7 +1,9 @@
 // One-release cleanup worker for retiring the previous offline app shell.
 // Keep this file at /sw.js so returning browsers receive it as an update.
 function isMaribAppCache(name) {
-  return /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-|^(html-pages|app-assets|images|supabase-data|supabase-images|gfonts-css|gfonts-files)$/.test(name);
+  return /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-|^(html-pages|app-assets|images|supabase-data|supabase-images|gfonts-css|gfonts-files)$/.test(
+    name,
+  );
 }
 
 self.addEventListener("install", () => self.skipWaiting());
