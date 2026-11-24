@@ -7,7 +7,69 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
+type ServerEnvironment = {
+  SUPABASE_URL?: string;
+  VITE_SUPABASE_URL?: string;
+};
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
+
+function addSecurityHeaders(response: Response, request: Request, env: unknown): Response {
+  const runtimeEnv = env && typeof env === "object" ? (env as ServerEnvironment) : {};
+  const supabaseUrl =
+    runtimeEnv.SUPABASE_URL ??
+    runtimeEnv.VITE_SUPABASE_URL ??
+    import.meta.env.VITE_SUPABASE_URL;
+  const supabaseSources = ["https://*.supabase.co", "wss://*.supabase.co"];
+
+  if (supabaseUrl) {
+    try {
+      const supabaseOrigin = new URL(supabaseUrl);
+      if (supabaseOrigin.protocol === "https:" || supabaseOrigin.protocol === "http:") {
+        supabaseSources.push(supabaseOrigin.origin);
+        supabaseSources.push(
+          `${supabaseOrigin.protocol === "https:" ? "wss:" : "ws:"}//${supabaseOrigin.host}`,
+        );
+      } else {
+        console.error("[SecurityHeaders] Supabase URL must use HTTP or HTTPS.");
+      }
+    } catch (error) {
+      console.error("[SecurityHeaders] Invalid Supabase URL.", error);
+    }
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      `connect-src 'self' ${supabaseSources.join(" ")}`,
+      "worker-src 'self' blob:",
+      "upgrade-insecure-requests",
+    ].join("; "),
+  );
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "DENY");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (new URL(request.url).protocol === "https:") {
+    headers.set("Strict-Transport-Security", "max-age=31536000");
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -42,13 +104,17 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return addSecurityHeaders(await normalizeCatastrophicSsrResponse(response), request, env);
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return addSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+        request,
+        env,
+      );
     }
   },
 };
