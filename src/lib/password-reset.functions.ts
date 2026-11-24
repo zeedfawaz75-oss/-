@@ -23,6 +23,19 @@ function normalizeName(raw: string): string {
 
 type RequestInput = { phone: string; fullName: string };
 
+function logPasswordResetError(operation: string, error: unknown) {
+  const code =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+      ? error.code
+      : error instanceof Error
+        ? error.name
+        : "UnknownError";
+  console.error(`[PasswordReset] ${operation} failed (${code})`);
+}
+
 export const checkExistingIdentity = createServerFn({ method: "POST" })
   .validator((input: RequestInput) => {
     const phone = normalizePhone(String(input?.phone ?? ""));
@@ -152,10 +165,30 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let allowed: boolean | null = null;
+    try {
+      const { data: rateAllowed, error } = await supabaseAdmin.rpc(
+        "consume_password_reset_attempt",
+        { p_phone: data.phone },
+      );
+      if (error) {
+        logPasswordResetError("rate-limit check", error);
+        return { ok: true as const };
+      }
+      allowed = rateAllowed;
+    } catch (error) {
+      logPasswordResetError("rate-limit check", error);
+      return { ok: true as const };
+    }
+
+    if (!allowed) {
+      console.warn("[PasswordReset] Request rate limit reached.");
+      return { ok: true as const };
+    }
+
     const wantName = normalizeName(data.fullName);
 
     // Verify the phone + name pair matches a real account (identity check only).
-    let phoneMatch = false;
     let target: { id: string; name: string } | null = null;
 
     for (let page = 1; page <= 10 && !target; page++) {
@@ -163,14 +196,17 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
         page,
         perPage: 200,
       });
-      if (error || !list?.users?.length) break;
+      if (error) {
+        logPasswordResetError("identity lookup", error);
+        break;
+      }
+      if (!list?.users?.length) break;
 
       for (const u of list.users) {
         const meta = (u.user_metadata ?? {}) as { phone?: string; full_name?: string };
         const metaPhone = normalizePhone(String(meta.phone ?? ""));
         const uPhone = normalizePhone(String(u.phone ?? ""));
         if (metaPhone !== data.phone && uPhone !== data.phone) continue;
-        phoneMatch = true;
 
         const storedName = String(meta.full_name ?? "").trim();
         if (storedName && normalizeName(storedName) === wantName) {
@@ -182,42 +218,65 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
     }
 
     // Generic response: never reveal whether the phone exists or the name matched.
-    if (!target) {
-      void phoneMatch;
-      return { ok: true as const };
-    }
+    const verifiedTarget = target;
+    if (!verifiedTarget) return { ok: true as const };
 
     // Log the request for admins — no credential change happens here.
     const requestedAt = new Date().toISOString();
     const when = new Date(requestedAt).toLocaleString("ar-YE");
-    const alertText = `🔐 طلب استعادة كلمة مرور\nالجوال: ${data.phone}\nالاسم: ${target.name}\nالوقت: ${when}`;
 
     try {
-      const { data: admins } = await supabaseAdmin
+      const { error } = await supabaseAdmin.from("admin_security_audit").insert({
+        actor_user_id: null,
+        target_user_id: verifiedTarget.id,
+        action: "password_reset_requested",
+        details: `Identity matched; administrator verification required. Requested at ${requestedAt}.`,
+      });
+      if (error) logPasswordResetError("audit record", error);
+      else console.info("[PasswordReset] Request recorded in admin security audit.");
+    } catch (error) {
+      logPasswordResetError("audit record", error);
+    }
+
+    try {
+      const { data: admins, error: adminLookupError } = await supabaseAdmin
         .from("user_roles")
         .select("user_id")
         .eq("role", "admin");
-      const rows = (admins ?? []).map((a) => ({
-        user_id: a.user_id,
-        type: "security",
-        title: "🔐 طلب استعادة كلمة مرور",
-        body: `الجوال: ${data.phone} — الاسم: ${target!.name} — الوقت: ${when} — يُرجى التواصل مع المستخدم عبر واتساب للتحقق ثم تعيين كلمة مرور جديدة من لوحة الإدارة.`,
-      }));
-      if (rows.length) await supabaseAdmin.from("notifications").insert(rows);
+      if (adminLookupError) {
+        logPasswordResetError("administrator lookup", adminLookupError);
+      } else {
+        const rows = (admins ?? []).map((a) => ({
+          user_id: a.user_id,
+          type: "security",
+          title: "🔐 طلب استعادة كلمة مرور",
+          body: `الجوال: ${data.phone} — الاسم: ${verifiedTarget.name} — الوقت: ${when} — يُرجى التحقق من الهوية قبل تعيين كلمة مرور جديدة من لوحة الإدارة.`,
+        }));
+        if (rows.length) {
+          const { error } = await supabaseAdmin.from("notifications").insert(rows);
+          if (error) logPasswordResetError("administrator notification", error);
+          else console.info("[PasswordReset] Administrator notification sent.");
+        } else {
+          console.warn("[PasswordReset] No administrator accounts found for notification.");
+        }
+      }
+    } catch (error) {
+      logPasswordResetError("administrator notification", error);
+    }
 
-      // Notify the requesting account in-app.
-      await supabaseAdmin.from("notifications").insert({
-        user_id: target.id,
+    try {
+      const { error } = await supabaseAdmin.from("notifications").insert({
+        user_id: verifiedTarget.id,
         type: "security",
         title: "تم إرسال طلب استعادة كلمة المرور 🔐",
         body: "تلقى المشرفون طلب الاستعادة. سيتواصلون معك عبر واتساب للتحقق قبل تغيير كلمة المرور.",
       });
-    } catch {
-      // auditing must never block the request flow
+      if (error) logPasswordResetError("requester notification", error);
+      else console.info("[PasswordReset] Requester notification sent.");
+    } catch (error) {
+      logPasswordResetError("requester notification", error);
     }
 
-    void alertText;
-    void requestedAt;
     return { ok: true as const };
   });
 

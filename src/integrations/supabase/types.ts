@@ -195,6 +195,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      password_reset_attempts: {
+        Row: {
+          created_at: string;
+          id: string;
+          phone: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          phone: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          phone?: string;
+        };
+        Relationships: [];
+      };
       notifications: {
         Row: {
           body: string | null;
@@ -433,6 +451,12 @@ export type Database = {
       };
     };
     Functions: {
+      consume_password_reset_attempt: {
+        Args: {
+          p_phone: string;
+        };
+        Returns: boolean;
+      };
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"];

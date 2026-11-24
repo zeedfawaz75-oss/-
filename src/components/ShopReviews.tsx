@@ -32,6 +32,7 @@ const Stars = ({ value }: { value: number }) => (
 export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: string }) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [stars, setStars] = useState(0);
@@ -40,12 +41,20 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    setLoading(true);
+    const { data, error } = await supabase
       .from("public_ratings")
       .select("id,rating,comment,author_name,created_at")
       .eq("shop_id", shopId)
       .order("created_at", { ascending: false })
       .limit(50);
+    if (error) {
+      console.error("[ShopReviews] Failed to load public ratings:", error.code);
+      setLoadError("تعذّر تحميل التقييمات الآن. تحقق من اتصالك وحاول مجدداً.");
+      setLoading(false);
+      return;
+    }
+    setLoadError(null);
     setReviews((data ?? []) as unknown as Review[]);
     setLoading(false);
   }, [shopId]);
@@ -186,6 +195,17 @@ export function ShopReviews({ shopId, shopName }: { shopId: string; shopName: st
       <div className="mt-4">
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-4">جاري تحميل التعليقات...</p>
+        ) : loadError ? (
+          <div className="space-y-3 py-4 text-center" role="alert">
+            <p className="text-sm text-destructive">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="rounded-lg bg-secondary px-4 py-2 text-xs font-bold text-foreground hover:bg-secondary/80"
+            >
+              إعادة المحاولة
+            </button>
+          </div>
         ) : reviews.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             لا توجد تعليقات بعد — كن أول من يشارك تجربته ✨
