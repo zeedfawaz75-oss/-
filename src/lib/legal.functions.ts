@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { DEFAULT_LEGAL_PAGES } from "@/lib/legal-content";
 
 const slugSchema = z.object({ slug: z.enum(["terms", "privacy"]) });
 const updateSchema = z.object({
@@ -36,7 +37,9 @@ export const getLegalPage = createServerFn({ method: "POST" })
       .select("title, content, updated_at")
       .eq("slug", data.slug)
       .single();
+    if (error?.code === "PGRST116") return DEFAULT_LEGAL_PAGES[data.slug];
     if (error) throw new Error(error.message);
+    if (!row) throw new Error("تعذّر تحميل الصفحة القانونية.");
     return row as { title: string; content: string; updated_at: string };
   });
 
@@ -47,8 +50,10 @@ export const updateLegalPage = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { error } = await context.supabase
       .from("app_legal_pages")
-      .update({ title: data.title, content: data.content })
-      .eq("slug", data.slug);
+      .upsert(
+        { slug: data.slug, title: data.title, content: data.content },
+        { onConflict: "slug" },
+      );
     if (error) throw new Error(error.message);
     return { ok: true };
   });

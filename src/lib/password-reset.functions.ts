@@ -21,9 +21,6 @@ function normalizeName(raw: string): string {
     .toLowerCase();
 }
 
-/** Developer / support WhatsApp number used for security alerts. */
-const DEVELOPER_WHATSAPP = "967772878948";
-
 type RequestInput = { phone: string; fullName: string };
 
 export const checkExistingIdentity = createServerFn({ method: "POST" })
@@ -221,7 +218,6 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
 
     void alertText;
     void requestedAt;
-    void DEVELOPER_WHATSAPP;
     return { ok: true as const };
   });
 

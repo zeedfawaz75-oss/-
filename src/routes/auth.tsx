@@ -14,6 +14,7 @@ import {
   isStrongPassword,
 } from "@/lib/auth-security.functions";
 import { toast } from "sonner";
+import { SUPPORT_WHATSAPP } from "@/lib/support";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -23,9 +24,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 // رقم واتساب إدارة التطبيق (لطلبات استعادة كلمة المرور)
-const SUPPORT_WHATSAPP = "967772878948";
-
-// Normalize a Yemeni phone number to its local 9-digit form (e.g. 772878948)
+// Normalize a Yemeni phone number to its local 9-digit form.
 function normalizePhone(rawPhone: string): string {
   let p = rawPhone.replace(/[^\d]/g, "");
   if (p.startsWith("00967")) p = p.slice(5);

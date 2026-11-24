@@ -217,7 +217,7 @@ function DirectoryPage() {
       {/* Hero header + quick services — scroll naturally with the page */}
       <div>
         {/* Hero header with realistic Marib background image */}
-        <header className="relative text-primary-foreground shadow-elegant overflow-hidden">
+        <header className="relative z-40 text-primary-foreground shadow-elegant">
           {/* Background image — Marib landscape (desert oasis / historic ruins) */}
           <img
             src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1800&q=75"

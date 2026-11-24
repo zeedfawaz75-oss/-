@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useBanners } from "@/hooks/useBanners";
+import { SUPPORT_WHATSAPP } from "@/lib/support";
 
 interface Ad {
   id: string;
@@ -20,8 +21,7 @@ const ADS: Ad[] = [
     image:
       "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1400&q=70",
     gradient: "linear-gradient(120deg, rgba(15,52,96,0.85), rgba(201,168,76,0.75))",
-    href:
-      "https://wa.me/967772878948?text=" + encodeURIComponent("مرحباً، أرغب بالإعلان في دليل مأرب"),
+    href: `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent("مرحباً، أرغب بالإعلان في دليل مأرب")}`,
   },
   {
     id: "ad-2",

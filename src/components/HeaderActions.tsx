@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Share2, Hand, User as UserIcon } from "lucide-react";
+import { Hand, User as UserIcon } from "lucide-react";
 import { ModalCloseButton } from "@/components/ModalCloseButton";
 import { HelpModal } from "@/components/HelpModal";
 import { ShopThumb } from "@/components/ShopThumb";
@@ -14,9 +14,7 @@ import { useDarkMode } from "@/hooks/useLocalState";
 import { adminPendingCount } from "@/lib/shops.functions";
 import { fetchApprovedShops, readCachedApprovedShops, type Shop } from "@/lib/shops";
 import { supabase } from "@/integrations/supabase/client";
-import { shareApp } from "@/lib/share";
 import { sendWaNotification } from "@/lib/wa-notify";
-import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
 function timeAgo(ts: number) {
@@ -286,21 +284,6 @@ export function HeaderActions() {
             </>
           )}
         </div>
-
-        {/* Share */}
-        <button
-          type="button"
-          onClick={async () => {
-            const res = await shareApp();
-            if (res === "clipboard")
-              toast.success("تم نسخ رابط التطبيق — الصقه في أي تطبيق للمشاركة");
-          }}
-          aria-label="مشاركة التطبيق"
-          title="مشاركة التطبيق"
-          className={ICON_BTN}
-        >
-          <Share2 size={20} />
-        </button>
 
         {/* Help */}
         <button
