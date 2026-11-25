@@ -2,7 +2,7 @@
  * Sharing helpers — always share the PUBLISHED (production) URL so links work
  * for everyone, never the preview/dev URL used inside the editor.
  */
-export const APP_URL = "https://marib-guide-hub.lovable.app";
+export const APP_URL = "https://worker.zeedfawaz75.workers.dev";
 
 export const APP_PROMO =
   "دليل مأرب التجاري والخدمي 🇾🇪 — بوابتك الأولى لاكتشاف المحلات والخدمات في مأرب.";

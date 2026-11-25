@@ -1,10 +1,7 @@
-<!-- LOVABLE:BEGIN -->
 > [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
+> This project deploys from GitHub to Cloudflare Workers. Avoid rewriting
 > published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
+> that are already pushed — because it can disrupt deployments and lose history.
 >
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
+> Commits pushed to the production branch trigger deployment, so keep the
+> branch in a working state.

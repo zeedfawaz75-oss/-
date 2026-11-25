@@ -2,17 +2,12 @@
 
 استيراد مشروع دليل مأرب التجاري والخدمي من مستودع GitHub".
 
-This project was built with [Lovable](https://lovable.dev).
+**Live app**: https://worker.zeedfawaz75.workers.dev
 
-**Live app**: https://marib-guide-hub.lovable.app
+## Production deployment
 
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/bb736a82-1caf-41e5-a64f-62e371d9f440).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+The production application is hosted on Cloudflare Workers. Changes pushed to
+the GitHub `master` branch are deployed through the connected Cloudflare build.
 
 ## Development
 
