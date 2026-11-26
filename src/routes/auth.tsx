@@ -78,9 +78,11 @@ function humanizeAuthError(message: string): string {
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [identityMethod, setIdentityMethod] = useState<"phone" | "email">("phone");
   const [showPw, setShowPw] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +104,28 @@ function AuthPage() {
     e.preventDefault();
     setResetMsg(null);
     setResetErr(null);
+    if (identityMethod === "email") {
+      const email = resetEmail.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setResetErr("الرجاء إدخال بريد إلكتروني صحيح.");
+        return;
+      }
+      setResetLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setResetMsg("إذا كان البريد مرتبطاً بحساب، فستصلك رسالة تحتوي على رابط إعادة التعيين.");
+        setResetEmail("");
+      } catch {
+        setResetErr("تعذّر إرسال طلب الاستعادة حالياً، حاول لاحقاً.");
+      } finally {
+        setResetLoading(false);
+      }
+      return;
+    }
+
     const digits = resetPhone.replace(/\D/g, "");
     if (digits.length < 8) {
       setResetErr("الرجاء إدخال رقم الجوال المسجّل.");
@@ -133,8 +157,14 @@ function AuthPage() {
     e.preventDefault();
     setError(null);
     setInfo(null);
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 8) {
+    const identity = phone.trim();
+    const isEmail = identityMethod === "email";
+    const digits = identity.replace(/\D/g, "");
+    if (isEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity)) {
+      setError("الرجاء إدخال بريد إلكتروني صحيح.");
+      return;
+    }
+    if (!isEmail && digits.length < 8) {
       setError("الرجاء إدخال رقم جوال صحيح");
       return;
     }
@@ -148,6 +178,38 @@ function AuthPage() {
     }
     setLoading(true);
     try {
+      if (isEmail) {
+        const email = identity.toLowerCase();
+        if (mode === "signup") {
+          const { data, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { full_name: fullName.trim() },
+              emailRedirectTo: window.location.origin,
+            },
+          });
+          if (signUpError) throw signUpError;
+          if (!data.session) {
+            setInfo("تم إنشاء الحساب. تحقق من بريدك لتأكيده، ثم سجّل الدخول.");
+            setMode("signin");
+            return;
+          }
+          toast.success("تم إنشاء الحساب وتسجيل الدخول ✅");
+          navigate({ to: "/" });
+          return;
+        }
+
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) throw signInError;
+        toast.success("تم تسجيل الدخول ✅");
+        navigate({ to: "/" });
+        return;
+      }
+
       const normalizedPhone = normalizePhone(phone);
       const limit = await runAuthLimit({ data: { phone: normalizedPhone } });
       if (!limit.allowed) {
@@ -237,6 +299,22 @@ function AuthPage() {
     }
   };
 
+  const signInWithGoogle = async () => {
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (oauthError) throw oauthError;
+    } catch (err) {
+      setError(humanizeAuthError(err instanceof Error ? err.message : ""));
+      setLoading(false);
+    }
+  };
+
   const forgotWaLink = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
     `مرحباً إدارة دليل مأرب،\nنسيت كلمة المرور لحسابي. رقم الجوال: ${phone || "(يرجى ذكره)"}\nأرجو المساعدة في إعادة تعيينها.`,
   )}`;
@@ -253,6 +331,29 @@ function AuthPage() {
         </div>
 
         <form onSubmit={submit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-secondary/60 p-1">
+            <button
+              type="button"
+              aria-pressed={identityMethod === "phone"}
+              onClick={() => setIdentityMethod("phone")}
+              className={`rounded-lg py-2 text-sm font-bold transition-smooth ${
+                identityMethod === "phone" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              رقم الجوال
+            </button>
+            <button
+              type="button"
+              aria-pressed={identityMethod === "email"}
+              onClick={() => setIdentityMethod("email")}
+              className={`rounded-lg py-2 text-sm font-bold transition-smooth ${
+                identityMethod === "email" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              البريد الإلكتروني
+            </button>
+          </div>
+
           {mode === "signup" && (
             <div>
               <label className="block text-xs font-bold text-muted-foreground mb-1">
@@ -271,19 +372,22 @@ function AuthPage() {
 
           <div>
             <label className="block text-xs font-bold text-muted-foreground mb-1">
-              رقم الجوال (يمني)
+              {identityMethod === "email" ? "البريد الإلكتروني" : "رقم الجوال (يمني)"}
             </label>
             <div className="flex gap-2" dir="ltr">
-              <span className="bg-secondary border border-border rounded-xl px-3 grid place-items-center text-sm font-bold text-foreground">
-                +967
-              </span>
+              {identityMethod === "phone" && (
+                <span className="bg-secondary border border-border rounded-xl px-3 grid place-items-center text-sm font-bold text-foreground">
+                  +967
+                </span>
+              )}
               <input
-                type="tel"
+                type={identityMethod === "email" ? "email" : "tel"}
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="7XXXXXXXX"
-                inputMode="numeric"
+                placeholder={identityMethod === "email" ? "name@example.com" : "7XXXXXXXX"}
+                inputMode={identityMethod === "email" ? "email" : "numeric"}
+                autoComplete={identityMethod === "email" ? "email" : "tel"}
                 className="flex-1 bg-background border border-border rounded-xl p-2.5 text-sm"
               />
             </div>
@@ -341,6 +445,18 @@ function AuthPage() {
           >
             {loading ? "..." : mode === "signin" ? "دخول" : "إنشاء حساب"}
           </button>
+          <div className="relative py-1 text-center">
+            <span className="bg-card px-3 text-xs text-muted-foreground">أو</span>
+            <span className="absolute inset-x-0 top-1/2 -z-10 border-t border-border" />
+          </div>
+          <button
+            type="button"
+            onClick={signInWithGoogle}
+            disabled={loading}
+            className="w-full rounded-xl border border-border bg-background py-2.5 text-sm font-bold text-foreground transition-smooth hover:bg-accent disabled:opacity-50"
+          >
+            المتابعة باستخدام Google
+          </button>
           <button
             type="button"
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
@@ -382,39 +498,62 @@ function AuthPage() {
             </div>
             <div className="p-5 space-y-3 text-sm">
               <form onSubmit={sendResetLink} className="space-y-2">
-                <label className="block text-xs font-bold text-muted-foreground">
-                  رقم الجوال المسجّل
-                </label>
-                <div className="flex gap-2" dir="ltr">
-                  <span className="bg-secondary border border-border rounded-xl px-3 grid place-items-center text-sm font-bold text-foreground">
-                    +967
-                  </span>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    value={resetPhone}
-                    onChange={(e) => setResetPhone(e.target.value)}
-                    placeholder="7XXXXXXXX"
-                    className="flex-1 bg-background border border-border rounded-xl p-2.5 text-sm"
-                  />
-                </div>
-                <label className="block text-xs font-bold text-muted-foreground">
-                  الاسم الكامل المسجّل
-                </label>
-                <input
-                  type="text"
-                  value={resetName}
-                  maxLength={100}
-                  onChange={(e) => setResetName(e.target.value)}
-                  placeholder="اكتب اسمك الكامل كما هو مسجّل"
-                  className="w-full bg-background border border-border rounded-xl p-2.5 text-sm"
-                />
+                {identityMethod === "email" ? (
+                  <>
+                    <label className="block text-xs font-bold text-muted-foreground">
+                      البريد الإلكتروني المسجّل
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      dir="ltr"
+                      className="w-full bg-background border border-border rounded-xl p-2.5 text-sm"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-xs font-bold text-muted-foreground">
+                      رقم الجوال المسجّل
+                    </label>
+                    <div className="flex gap-2" dir="ltr">
+                      <span className="bg-secondary border border-border rounded-xl px-3 grid place-items-center text-sm font-bold text-foreground">
+                        +967
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        value={resetPhone}
+                        onChange={(e) => setResetPhone(e.target.value)}
+                        placeholder="7XXXXXXXX"
+                        className="flex-1 bg-background border border-border rounded-xl p-2.5 text-sm"
+                      />
+                    </div>
+                    <label className="block text-xs font-bold text-muted-foreground">
+                      الاسم الكامل المسجّل
+                    </label>
+                    <input
+                      type="text"
+                      value={resetName}
+                      maxLength={100}
+                      onChange={(e) => setResetName(e.target.value)}
+                      placeholder="اكتب اسمك الكامل كما هو مسجّل"
+                      className="w-full bg-background border border-border rounded-xl p-2.5 text-sm"
+                    />
+                  </>
+                )}
                 <button
                   type="submit"
                   disabled={resetLoading}
                   className="w-full bg-gold-gradient text-gold-foreground rounded-xl py-2.5 font-bold shadow-gold disabled:opacity-50"
                 >
-                  {resetLoading ? "..." : "📨 إرسال طلب الاستعادة للإدارة"}
+                  {resetLoading
+                    ? "..."
+                    : identityMethod === "email"
+                      ? "إرسال رابط إعادة التعيين"
+                      : "📨 إرسال طلب الاستعادة للإدارة"}
                 </button>
               </form>
               {resetMsg && (
@@ -428,18 +567,20 @@ function AuthPage() {
                 </p>
               )}
               <p className="text-xs text-muted-foreground leading-relaxed">
-                للأمان: لا يمكن تعيين كلمة مرور جديدة مباشرة من هنا. بعد تطابق رقم الجوال مع الاسم
-                الكامل يُرسَل طلبك إلى الإدارة، ويتواصل معك المشرف عبر واتساب للتحقق من هويتك قبل
-                تعيين كلمة المرور الجديدة.
+                {identityMethod === "email"
+                  ? "إذا كان البريد مرتبطاً بحساب، فستصلك رسالة آمنة لإعادة تعيين كلمة المرور."
+                  : "للأمان: لا يمكن تعيين كلمة مرور جديدة مباشرة من هنا. بعد تطابق رقم الجوال مع الاسم الكامل يُرسَل طلبك إلى الإدارة، ويتواصل معك المشرف عبر واتساب للتحقق من هويتك قبل تعيين كلمة المرور الجديدة."}
               </p>
-              <a
-                href={forgotWaLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full text-center bg-[#25D366] text-white rounded-xl py-2.5 font-bold shadow-soft"
-              >
-                💬 فتح واتساب الإدارة
-              </a>
+              {identityMethod === "phone" && (
+                <a
+                  href={forgotWaLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-center bg-[#25D366] text-white rounded-xl py-2.5 font-bold shadow-soft"
+                >
+                  💬 فتح واتساب الإدارة
+                </a>
+              )}
               <button
                 onClick={() => setForgotOpen(false)}
                 className="block w-full text-center bg-secondary border border-border rounded-xl py-2 font-bold text-xs"

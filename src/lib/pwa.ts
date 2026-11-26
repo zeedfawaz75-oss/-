@@ -1,5 +1,5 @@
 // Guarded PWA service worker registration.
-// - Never registers in dev, iframe preview, Lovable preview hosts, or with ?sw=off.
+// - Never registers in dev, iframe previews, or with ?sw=off.
 // - Uses the static /sw.js file in public/.
 // - In any refused context, actively unregisters an existing /sw.js.
 
@@ -15,11 +15,6 @@ function isRefusedContext(): boolean {
   if (typeof window === "undefined") return true;
   if (!import.meta.env.PROD) return true;
   if (window.self !== window.top) return true;
-  const host = window.location.hostname;
-  if (host.startsWith("id-preview--") || host.startsWith("preview--")) return true;
-  if (host === "lovableproject.com" || host.endsWith(".lovableproject.com")) return true;
-  if (host === "lovableproject-dev.com" || host.endsWith(".lovableproject-dev.com")) return true;
-  if (host === "beta.lovable.dev" || host.endsWith(".beta.lovable.dev")) return true;
   if (new URLSearchParams(window.location.search).get("sw") === "off") return true;
   return false;
 }

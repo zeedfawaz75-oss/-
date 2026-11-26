@@ -11,7 +11,6 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import InstallPrompt from "../components/InstallPrompt";
 import { OfflineScreen } from "../components/OfflineScreen";
 import { migrateUiVersion } from "../lib/app-version";
@@ -43,7 +42,6 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
   useEffect(() => {
     const reportedError = error instanceof Error ? error : new Error("An unknown error occurred.");
     console.error(reportedError);
-    reportLovableError(reportedError, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
