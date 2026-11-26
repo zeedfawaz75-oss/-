@@ -49,27 +49,40 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
 
     const request = getRequest();
 
+    const reject = async (
+      eventType: "auth_missing_credentials" | "auth_invalid_credentials" | "auth_missing_subject",
+      message: string,
+    ): Promise<never> => {
+      try {
+        const { recordSecurityEvent } = await import("@/lib/security-events.server");
+        await recordSecurityEvent({ eventType });
+      } catch (error) {
+        console.error("[SecurityEvents] Failed to record authentication denial.");
+      }
+      throw new Error(message);
+    };
+
     if (!request?.headers) {
-      throw new Error("Unauthorized: No request headers available");
+      return reject("auth_missing_credentials", "Unauthorized: No request headers available");
     }
 
     const authHeader = request.headers.get("authorization");
 
     if (!authHeader) {
-      throw new Error("Unauthorized: No authorization header provided");
+      return reject("auth_missing_credentials", "Unauthorized: No authorization header provided");
     }
 
     if (!authHeader.startsWith("Bearer ")) {
-      throw new Error("Unauthorized: Only Bearer tokens are supported");
+      return reject("auth_invalid_credentials", "Unauthorized: Only Bearer tokens are supported");
     }
 
     const token = authHeader.replace("Bearer ", "");
     if (!token) {
-      throw new Error("Unauthorized: No token provided");
+      return reject("auth_missing_credentials", "Unauthorized: No token provided");
     }
 
     if (token.split(".").length !== 3) {
-      throw new Error("Unauthorized: Invalid token");
+      return reject("auth_invalid_credentials", "Unauthorized: Invalid token");
     }
 
     const supabase = createClient<Database>(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
@@ -88,11 +101,11 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
 
     const { data, error } = await supabase.auth.getClaims(token);
     if (error || !data?.claims) {
-      throw new Error("Unauthorized: Invalid token");
+      return reject("auth_invalid_credentials", "Unauthorized: Invalid token");
     }
 
     if (!data.claims.sub) {
-      throw new Error("Unauthorized: No user ID found in token");
+      return reject("auth_missing_subject", "Unauthorized: No user ID found in token");
     }
 
     return next({

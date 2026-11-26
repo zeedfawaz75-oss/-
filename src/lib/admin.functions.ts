@@ -9,7 +9,14 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
     _role: "admin",
   });
   if (error) throw new Error("تعذّر التحقق من صلاحيات الإدارة");
-  if (!data) throw new Error("هذه الصفحة للمسؤولين فقط");
+  if (!data) {
+    const { recordSecurityEvent } = await import("@/lib/security-events.server");
+    await recordSecurityEvent({
+      eventType: "admin_role_denied",
+      actorUserId: context.userId,
+    });
+    throw new Error("هذه الصفحة للمسؤولين فقط");
+  }
 }
 
 async function recordSecurityAction(input: {

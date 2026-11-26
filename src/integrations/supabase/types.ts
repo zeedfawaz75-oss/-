@@ -195,6 +195,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      security_events: {
+        Row: {
+          actor_user_id: string | null;
+          created_at: string;
+          event_type:
+            | "auth_missing_credentials"
+            | "auth_invalid_credentials"
+            | "auth_missing_subject"
+            | "admin_role_denied"
+            | "client_login_failure_reported";
+          id: string;
+          source: "server" | "client_reported_unverified";
+          source_hash: string | null;
+        };
+        Insert: {
+          actor_user_id?: string | null;
+          created_at?: string;
+          event_type:
+            | "auth_missing_credentials"
+            | "auth_invalid_credentials"
+            | "auth_missing_subject"
+            | "admin_role_denied"
+            | "client_login_failure_reported";
+          id?: string;
+          source: "server" | "client_reported_unverified";
+          source_hash?: string | null;
+        };
+        Update: {
+          actor_user_id?: string | null;
+          created_at?: string;
+          event_type?:
+            | "auth_missing_credentials"
+            | "auth_invalid_credentials"
+            | "auth_missing_subject"
+            | "admin_role_denied"
+            | "client_login_failure_reported";
+          id?: string;
+          source?: "server" | "client_reported_unverified";
+          source_hash?: string | null;
+        };
+        Relationships: [];
+      };
       password_reset_attempts: {
         Row: {
           created_at: string;
@@ -451,6 +493,19 @@ export type Database = {
       };
     };
     Functions: {
+      record_security_event: {
+        Args: {
+          p_actor_user_id: string | null;
+          p_event_type: string;
+          p_source: string;
+          p_source_hash: string | null;
+        };
+        Returns: {
+          event_id: string;
+          recent_count: number;
+          recorded: boolean;
+        }[];
+      };
       consume_password_reset_attempt: {
         Args: {
           p_phone: string;

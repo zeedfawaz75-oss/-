@@ -19,7 +19,14 @@ async function assertAdmin(context: { supabase: SupabaseClient<Database>; userId
     _role: "admin",
   });
   if (error) throw new Error("تعذّر التحقق من صلاحيات الإدارة");
-  if (!data) throw new Error("هذه العملية للمسؤولين فقط");
+  if (!data) {
+    const { recordSecurityEvent } = await import("@/lib/security-events.server");
+    await recordSecurityEvent({
+      eventType: "admin_role_denied",
+      actorUserId: context.userId,
+    });
+    throw new Error("هذه العملية للمسؤولين فقط");
+  }
 }
 
 export const getLegalPage = createServerFn({ method: "POST" })
@@ -34,13 +41,9 @@ export const getLegalPage = createServerFn({ method: "POST" })
       ];
       throw new Error(`Missing Supabase environment variable(s): ${missing.join(", ")}.`);
     }
-    const supabasePublic = createClient(
-      url,
-      publishableKey,
-      {
-        auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-      },
-    );
+    const supabasePublic = createClient(url, publishableKey, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
     const { data: row, error } = await supabasePublic
       .from("app_legal_pages")
       .select("title, content, updated_at")

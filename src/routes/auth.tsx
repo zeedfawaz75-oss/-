@@ -8,11 +8,7 @@ import {
   registerWithPhone,
   requestPasswordReset,
 } from "@/lib/password-reset.functions";
-import {
-  checkAuthRateLimit,
-  recordAuthAttempt,
-  isStrongPassword,
-} from "@/lib/auth-security.functions";
+import { reportUnverifiedLoginFailure, isStrongPassword } from "@/lib/auth-security.functions";
 import { toast } from "sonner";
 import { SUPPORT_WHATSAPP } from "@/lib/support";
 
@@ -97,8 +93,7 @@ function AuthPage() {
   const runResetRequest = useServerFn(requestPasswordReset);
   const runIdentityCheck = useServerFn(checkExistingIdentity);
   const runPhoneRegistration = useServerFn(registerWithPhone);
-  const runAuthLimit = useServerFn(checkAuthRateLimit);
-  const runAuthAttempt = useServerFn(recordAuthAttempt);
+  const reportLoginFailure = useServerFn(reportUnverifiedLoginFailure);
 
   const sendResetLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,19 +199,16 @@ function AuthPage() {
           email,
           password,
         });
-        if (signInError) throw signInError;
+        if (signInError) {
+          void reportLoginFailure({ data: {} }).catch(() => undefined);
+          throw signInError;
+        }
         toast.success("تم تسجيل الدخول ✅");
         navigate({ to: "/" });
         return;
       }
 
       const normalizedPhone = normalizePhone(phone);
-      const limit = await runAuthLimit({ data: { phone: normalizedPhone } });
-      if (!limit.allowed) {
-        setError("تم تجاوز عدد المحاولات المسموح به. انتظر 15 دقيقة ثم حاول مجددًا.");
-        return;
-      }
-
       const identifier = phoneToEmail(normalizedPhone);
       const legacy = legacyPhoneToEmail(normalizedPhone);
 
@@ -235,19 +227,17 @@ function AuthPage() {
         });
         if (existing?.exists) {
           if (!existing.nameMatches) {
-            await runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
             setError("تعذّر إكمال إنشاء الحساب بالبيانات المدخلة. تحقق من بياناتك أو سجّل الدخول.");
             return;
           }
           const signInRes = await trySignIn();
           if (!signInRes.error) {
-            await runAuthAttempt({ data: { phone: normalizedPhone, success: true } });
             toast.success("هذا الحساب موجود، تم تسجيل الدخول ✅");
             navigate({ to: "/" });
             return;
           }
           setError("تعذّر تسجيل الدخول بهذه البيانات. تحقق من كلمة المرور أو اطلب استعادة الحساب.");
-          await runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
+          void reportLoginFailure({ data: {} }).catch(() => undefined);
           return;
         }
 
@@ -256,39 +246,35 @@ function AuthPage() {
         });
         if (!registration.created) {
           if (!registration.nameMatches) {
-            await runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
             setError("تعذّر إكمال إنشاء الحساب بالبيانات المدخلة. تحقق من بياناتك أو سجّل الدخول.");
             return;
           }
           const signInRes = await trySignIn();
           if (!signInRes.error) {
-            await runAuthAttempt({ data: { phone: normalizedPhone, success: true } });
             toast.success("هذا الحساب موجود، تم تسجيل الدخول ✅");
             navigate({ to: "/" });
             return;
           }
           setError("تعذّر تسجيل الدخول بهذه البيانات. تحقق من كلمة المرور أو اطلب استعادة الحساب.");
-          await runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
+          void reportLoginFailure({ data: {} }).catch(() => undefined);
           return;
         }
 
         const signInRes = await trySignIn();
         if (signInRes.error) {
-          await runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
+          void reportLoginFailure({ data: {} }).catch(() => undefined);
           setInfo("تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول برقم جوالك.");
           setMode("signin");
         } else {
-          await runAuthAttempt({ data: { phone: normalizedPhone, success: true } });
           toast.success("تم إنشاء الحساب وتسجيل الدخول ✅");
           navigate({ to: "/" });
         }
       } else {
         const { error: siErr } = await trySignIn();
         if (siErr) {
-          await runAuthAttempt({ data: { phone: normalizedPhone, success: false } });
+          void reportLoginFailure({ data: {} }).catch(() => undefined);
           throw siErr;
         }
-        await runAuthAttempt({ data: { phone: normalizedPhone, success: true } });
         toast.success("تم تسجيل الدخول ✅");
         navigate({ to: "/" });
       }
@@ -337,7 +323,9 @@ function AuthPage() {
               aria-pressed={identityMethod === "phone"}
               onClick={() => setIdentityMethod("phone")}
               className={`rounded-lg py-2 text-sm font-bold transition-smooth ${
-                identityMethod === "phone" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                identityMethod === "phone"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground"
               }`}
             >
               رقم الجوال
@@ -347,7 +335,9 @@ function AuthPage() {
               aria-pressed={identityMethod === "email"}
               onClick={() => setIdentityMethod("email")}
               className={`rounded-lg py-2 text-sm font-bold transition-smooth ${
-                identityMethod === "email" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                identityMethod === "email"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground"
               }`}
             >
               البريد الإلكتروني
