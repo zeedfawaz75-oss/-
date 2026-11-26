@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { getSupabasePublicConfig } from "./integrations/supabase/public-env";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -17,9 +18,11 @@ let serverEntryPromise: Promise<ServerEntry> | undefined;
 function addSecurityHeaders(response: Response, request: Request, env: unknown): Response {
   const runtimeEnv = env && typeof env === "object" ? (env as ServerEnvironment) : {};
   const supabaseUrl =
-    runtimeEnv.SUPABASE_URL ??
-    runtimeEnv.VITE_SUPABASE_URL ??
-    import.meta.env.VITE_SUPABASE_URL;
+    import.meta.env.VITE_SUPABASE_URL ||
+    runtimeEnv.VITE_SUPABASE_URL ||
+    import.meta.env.SUPABASE_URL ||
+    runtimeEnv.SUPABASE_URL ||
+    getSupabasePublicConfig().url;
   const supabaseSources = ["https://*.supabase.co", "wss://*.supabase.co"];
 
   if (supabaseUrl) {

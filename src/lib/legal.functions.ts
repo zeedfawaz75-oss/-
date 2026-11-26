@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getSupabasePublicConfig } from "@/integrations/supabase/public-env";
 import type { Database } from "@/integrations/supabase/types";
 import { DEFAULT_LEGAL_PAGES } from "@/lib/legal-content";
 
@@ -25,9 +26,17 @@ export const getLegalPage = createServerFn({ method: "POST" })
   .validator((d: unknown) => slugSchema.parse(d))
   .handler(async ({ data }) => {
     const { createClient } = await import("@supabase/supabase-js");
+    const { url, publishableKey } = getSupabasePublicConfig();
+    if (!url || !publishableKey) {
+      const missing = [
+        ...(!url ? ["SUPABASE_URL"] : []),
+        ...(!publishableKey ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
+      ];
+      throw new Error(`Missing Supabase environment variable(s): ${missing.join(", ")}.`);
+    }
     const supabasePublic = createClient(
-      process.env["SUPABASE_URL"]!,
-      process.env["SUPABASE_PUBLISHABLE_KEY"]!,
+      url,
+      publishableKey,
       {
         auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
       },
