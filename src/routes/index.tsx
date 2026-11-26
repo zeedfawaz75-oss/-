@@ -103,6 +103,7 @@ function DirectoryPage() {
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [shops, setShops] = useState<Shop[]>(() => readCachedApprovedShops() ?? []);
+  const [shopsLoadError, setShopsLoadError] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addPrefill, setAddPrefill] = useState<{ sectorId?: string; subId?: string }>({});
@@ -124,11 +125,12 @@ function DirectoryPage() {
 
   // Load shops
   const reloadShops = async () => {
+    setShopsLoadError(false);
     try {
       const data = await fetchApprovedShops();
       setShops(data);
     } catch {
-      setShops([]);
+      setShopsLoadError(true);
     }
   };
   useEffect(() => {
@@ -220,7 +222,7 @@ function DirectoryPage() {
         <header className="relative z-40 text-primary-foreground shadow-elegant">
           {/* Background image — Marib landscape (desert oasis / historic ruins) */}
           <img
-            src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1800&q=75"
+            src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1280&q=60"
             alt="محافظة مأرب"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
@@ -332,6 +334,22 @@ function DirectoryPage() {
         ref={scrollRef}
         className="max-w-6xl w-full mx-auto px-4 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]"
       >
+        {shopsLoadError && (
+          <div
+            role="alert"
+            className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"
+          >
+            <p className="text-foreground">تعذّر تحديث قائمة المحلات. يمكنك المحاولة مجددًا.</p>
+            <button
+              type="button"
+              onClick={() => void reloadShops()}
+              className="rounded-lg bg-primary px-4 py-2 font-bold text-primary-foreground"
+            >
+              إعادة المحاولة
+            </button>
+          </div>
+        )}
+
         {/* Search results (shops) — visible when query active */}
         {query.trim() && searchedShops.length > 0 && (
           <section className="mb-8">
@@ -720,14 +738,30 @@ function SubsectionShopsView({
   const sub = sector.subsections.find((s) => s.id === subId);
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
+    setLoadError(false);
     fetchShopsBySubsection(sector.id, subId)
-      .then(setShops)
-      .catch(() => setShops([]))
-      .finally(() => setLoading(false));
-  }, [sector.id, subId]);
+      .then((data) => {
+        if (!cancelled) setShops(data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setShops([]);
+          setLoadError(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sector.id, subId, retryAttempt]);
 
   return (
     <section className="animate-scale-in">
@@ -756,6 +790,20 @@ function SubsectionShopsView({
 
       {loading ? (
         <p className="text-center text-muted-foreground py-8">جارٍ التحميل...</p>
+      ) : loadError ? (
+        <div
+          role="alert"
+          className="bg-card rounded-2xl p-8 text-center shadow-soft border border-border"
+        >
+          <p className="text-foreground mb-4">تعذّر تحميل محلات هذا القسم.</p>
+          <button
+            type="button"
+            onClick={() => setRetryAttempt((attempt) => attempt + 1)}
+            className="bg-primary text-primary-foreground rounded-xl px-5 py-2 font-bold"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
       ) : shops.length === 0 ? (
         <div className="bg-card rounded-2xl p-8 text-center shadow-soft border border-border">
           <p className="text-muted-foreground mb-4">لا توجد محلات معتمدة في هذا القسم حتى الآن.</p>

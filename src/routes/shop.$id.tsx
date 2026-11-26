@@ -33,6 +33,8 @@ function ShopPage() {
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [requestError, setRequestError] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [popHeart, setPopHeart] = useState(false);
   const [bank, setBank] = useState<ShopBankDetails | null>(null);
@@ -55,18 +57,20 @@ function ShopPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setNotFound(false);
+    setRequestError(false);
     fetchShopById(id)
       .then((data) => {
         if (cancelled) return;
         if (!data) setNotFound(true);
         else setShop(data);
       })
-      .catch(() => !cancelled && setNotFound(true))
+      .catch(() => !cancelled && setRequestError(true))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, retryAttempt]);
 
   if (loading) {
     return (
@@ -77,6 +81,25 @@ function ShopPage() {
   }
 
   if (notFound || !shop) {
+    if (requestError) {
+      return (
+        <div className="min-h-screen grid place-items-center p-6 text-center">
+          <div>
+            <div className="text-5xl mb-3">⚠️</div>
+            <h1 className="text-lg font-black mb-2">تعذّر تحميل تفاصيل المحل</h1>
+            <p className="text-sm text-muted-foreground mb-4">تحقق من اتصالك وحاول مجددًا.</p>
+            <button
+              type="button"
+              onClick={() => setRetryAttempt((attempt) => attempt + 1)}
+              className="rounded-xl bg-primary px-5 py-2 font-bold text-primary-foreground"
+            >
+              إعادة المحاولة
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen grid place-items-center p-6 text-center">
         <div>

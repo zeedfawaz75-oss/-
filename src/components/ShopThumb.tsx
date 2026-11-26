@@ -1,4 +1,4 @@
-import { useStorageImage } from "@/hooks/useStorageImage";
+import { SHOP_THUMBNAIL_TRANSFORM, useStorageImage } from "@/hooks/useStorageImage";
 
 interface Props {
   url: string | null | undefined;
@@ -10,19 +10,26 @@ interface Props {
 
 /** Shop image thumbnail that resolves private-storage URLs before rendering. */
 export function ShopThumb({ url, name, className = "", linkable = false }: Props) {
-  const src = useStorageImage(url);
+  const src = useStorageImage(url, SHOP_THUMBNAIL_TRANSFORM);
+  const fullSrc = useStorageImage(url);
   const box = `overflow-hidden bg-secondary ${className}`;
 
   if (!src) return <div className={`${box} bg-gradient-to-br from-secondary to-muted`} />;
 
   const img = (
-    <img src={src} alt={`صورة ${name}`} loading="lazy" className="w-full h-full object-cover" />
+    <img
+      src={src}
+      alt={`صورة ${name}`}
+      loading="lazy"
+      decoding="async"
+      className="w-full h-full object-cover"
+    />
   );
   if (!linkable) return <div className={box}>{img}</div>;
 
   return (
     <a
-      href={src}
+      href={fullSrc ?? src}
       target="_blank"
       rel="noopener noreferrer"
       className={box}

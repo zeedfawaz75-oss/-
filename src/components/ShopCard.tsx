@@ -5,7 +5,7 @@ import { BOOKING_SECTORS } from "@/lib/directory-data";
 import { BookingDialog } from "./BookingDialog";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useShopRating } from "@/hooks/useShopRating";
-import { useStorageImage } from "@/hooks/useStorageImage";
+import { SHOP_THUMBNAIL_TRANSFORM, useStorageImage } from "@/hooks/useStorageImage";
 import { notify } from "@/hooks/useNotifications";
 import { smartShare, shopUrl } from "@/lib/share";
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ export function ShopCard({ shop, compact = false }: { shop: Shop; compact?: bool
 
   const { isFav, toggle: toggleFav, needsAuth } = useFavorites();
   const { userRating, rate } = useShopRating(shop.id);
-  const imageSrc = useStorageImage(shop.image_url);
+  const imageSrc = useStorageImage(shop.image_url, SHOP_THUMBNAIL_TRANSFORM);
   const displayRating = userRating > 0 ? userRating : Math.round(shop.rating);
 
   const [bookingOpen, setBookingOpen] = useState(false);

@@ -19,7 +19,7 @@ const ADS: Ad[] = [
     subtitle: "وصول مباشر لآلاف الزوار يومياً — مساحات إعلانية مميزة.",
     cta: "احجز مساحتك",
     image:
-      "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1400&q=70",
+      "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=960&q=60",
     gradient: "linear-gradient(120deg, rgba(15,52,96,0.85), rgba(201,168,76,0.75))",
     href: `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent("مرحباً، أرغب بالإعلان في دليل مأرب")}`,
   },
@@ -29,7 +29,7 @@ const ADS: Ad[] = [
     subtitle: "اطلب من مطاعم ومحلات المحافظة ووصلها إلى بابك خلال دقائق.",
     cta: "تصفّح المطاعم",
     image:
-      "https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&w=1400&q=70",
+      "https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&w=960&q=60",
     gradient: "linear-gradient(120deg, rgba(22,33,62,0.85), rgba(15,52,96,0.75))",
   },
   {
@@ -38,7 +38,7 @@ const ADS: Ad[] = [
     subtitle: "سجّل محلك مجاناً وظهور مميّز في الأقسام الأكثر بحثاً.",
     cta: "اعرف المزيد",
     image:
-      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=70",
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=960&q=60",
     gradient: "linear-gradient(120deg, rgba(201,168,76,0.85), rgba(15,52,96,0.75))",
   },
 ];
@@ -90,6 +90,7 @@ export function AdsSlider() {
           src={ad.image}
           alt={ad.title}
           loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
         <div aria-hidden className="absolute inset-0" style={{ background: ad.gradient }} />

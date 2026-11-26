@@ -12,7 +12,6 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import InstallPrompt from "../components/InstallPrompt";
-import { OfflineScreen } from "../components/OfflineScreen";
 import { migrateUiVersion } from "../lib/app-version";
 
 function NotFoundComponent() {
@@ -148,7 +147,6 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <InstallPrompt />
-      <OfflineScreen />
       <Toaster
         position="top-center"
         closeButton
