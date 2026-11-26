@@ -25,10 +25,7 @@ type RequestInput = { phone: string; fullName: string };
 
 function logPasswordResetError(operation: string, error: unknown) {
   const code =
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof error.code === "string"
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
       ? error.code
       : error instanceof Error
         ? error.name

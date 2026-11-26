@@ -195,8 +195,8 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
                 : subpage === "contact"
                   ? "تواصل مع الإدارة"
                   : subpage
-                ? (legalPage?.title ?? LEGAL_PAGE_TITLES[subpage])
-                : "مركز المساعدة"}
+                    ? (legalPage?.title ?? LEGAL_PAGE_TITLES[subpage])
+                    : "مركز المساعدة"}
           </h3>
         </div>
 
