@@ -24,12 +24,13 @@ CREATE TABLE public.shops (
   rating NUMERIC(2,1) NOT NULL DEFAULT 5.0 CHECK (rating >= 0 AND rating <= 5),
   visits INT NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  rejection_reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX shops_phone_unique ON public.shops (phone);
-CREATE UNIQUE INDEX shops_name_unique ON public.shops (lower(name));
+CREATE UNIQUE INDEX shops_owner_listing_unique
+  ON public.shops (owner_id, sector_id, subsection_id, phone, lower(name));
 CREATE INDEX shops_status_idx ON public.shops (status);
 CREATE INDEX shops_sector_idx ON public.shops (sector_id, subsection_id);
 

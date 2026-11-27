@@ -285,22 +285,6 @@ function AuthPage() {
     }
   };
 
-  const signInWithGoogle = async () => {
-    setError(null);
-    setInfo(null);
-    setLoading(true);
-    try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.origin },
-      });
-      if (oauthError) throw oauthError;
-    } catch (err) {
-      setError(humanizeAuthError(err instanceof Error ? err.message : ""));
-      setLoading(false);
-    }
-  };
-
   const forgotWaLink = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
     `مرحباً إدارة دليل مأرب،\nنسيت كلمة المرور لحسابي. رقم الجوال: ${phone || "(يرجى ذكره)"}\nأرجو المساعدة في إعادة تعيينها.`,
   )}`;
@@ -434,18 +418,6 @@ function AuthPage() {
             className="w-full bg-gold-gradient text-gold-foreground rounded-xl py-3 font-bold shadow-gold disabled:opacity-50"
           >
             {loading ? "..." : mode === "signin" ? "دخول" : "إنشاء حساب"}
-          </button>
-          <div className="relative py-1 text-center">
-            <span className="bg-card px-3 text-xs text-muted-foreground">أو</span>
-            <span className="absolute inset-x-0 top-1/2 -z-10 border-t border-border" />
-          </div>
-          <button
-            type="button"
-            onClick={signInWithGoogle}
-            disabled={loading}
-            className="w-full rounded-xl border border-border bg-background py-2.5 text-sm font-bold text-foreground transition-smooth hover:bg-accent disabled:opacity-50"
-          >
-            المتابعة باستخدام Google
           </button>
           <button
             type="button"

@@ -29,6 +29,7 @@ export const Route = createFileRoute("/admin")({
 
 interface ShopRow {
   id: string;
+  owner_id: string;
   name: string;
   description: string;
   phone: string;
@@ -37,11 +38,18 @@ interface ShopRow {
   sector_id: string;
   subsection_id: string;
   status: string;
+  rejection_reason?: string | null;
   created_at: string;
   image_url?: string | null;
 }
 
 type Tab = "overview" | "shops" | "categories" | "users" | "banners" | "broadcast";
+
+const MODERATION_REASONS = [
+  "صورة المحل غير مطابقة للنشاط",
+  "بيانات التواصل أو العنوان غير مكتملة",
+  "طلب مكرر",
+] as const;
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "overview", label: "نظرة عامة", icon: "📊" },
@@ -71,6 +79,8 @@ function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [confirmDelete, setConfirmDelete] = useState<ShopRow | null>(null);
+  const [rejectShop, setRejectShop] = useState<ShopRow | null>(null);
+  const [moderationReason, setModerationReason] = useState("");
   const [stats, setStats] = useState<{
     pending: number;
     totalUsers: number;
@@ -113,20 +123,16 @@ function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
-  const act = async (id: string, kind: "approve" | "reject" | "delete") => {
-    const prev = shops;
-    // Optimistic UI so the card leaves "قيد المراجعة" immediately
-    setShops((rows) =>
-      kind === "delete"
-        ? rows.filter((r) => r.id !== id)
-        : rows.map((r) =>
-            r.id === id ? { ...r, status: kind === "approve" ? "approved" : "rejected" } : r,
-          ),
-    );
+  const act = async (id: string, kind: "approve" | "reject" | "delete", reason = "") => {
     try {
-      const fn = kind === "approve" ? approveFn : kind === "reject" ? rejectFn : deleteFn;
-      await fn({ data: { shopId: id } });
-      const shop = prev.find((r) => r.id === id);
+      const shop = shops.find((r) => r.id === id);
+      const result =
+        kind === "approve"
+          ? await approveFn({ data: { shopId: id } })
+          : kind === "reject"
+            ? await rejectFn({ data: { shopId: id, reason } })
+            : await deleteFn({ data: { shopId: id, reason } });
+      if (!result.ok) throw new Error("تعذّر تأكيد حفظ حالة المحل.");
       const title =
         kind === "approve"
           ? "تم اعتماد المحل ونشره ✓"
@@ -134,12 +140,13 @@ function AdminPage() {
             ? "تم رفض المحل ✗"
             : "تم حذف المحل 🗑";
       toast.success(title);
-      // Deliver the same notice to the owner over WhatsApp (same mechanism as password reset)
-      if (kind !== "delete" && shop) {
+      if (shop) {
         const msg =
           kind === "approve"
             ? `تم اعتماد محلك «${shop.name}» ونشره في دليل مأرب 🎉`
-            : `نعتذر، لم يتم اعتماد محلك «${shop.name}». يمكنك التواصل مع الإدارة للمراجعة.`;
+            : kind === "reject"
+              ? `نعتذر، تم رفض طلب المحل «${shop.name}» بسبب: ${reason}`
+              : `تم حذف المحل «${shop.name}» بسبب: ${reason}`;
         toast.success("إشعار جاهز للإرسال عبر واتساب", {
           action: {
             label: "إرسال 💬",
@@ -152,7 +159,6 @@ function AdminPage() {
       }
       await load();
     } catch (err) {
-      setShops(prev);
       const msg = err instanceof Error ? err.message : "خطأ";
       setError(msg);
       toastFail(msg);
@@ -420,14 +426,35 @@ function AdminPage() {
                         )}
                         {shop.status !== "rejected" && (
                           <button
-                            onClick={() => act(shop.id, "reject")}
+                            onClick={() => {
+                              setRejectShop(shop);
+                              setModerationReason("");
+                            }}
                             className="bg-secondary text-secondary-foreground border border-border rounded-lg px-3 py-1.5 text-xs font-bold"
                           >
                             ✗ رفض
                           </button>
                         )}
+                        {shop.status === "pending" && (
+                          <button
+                            onClick={() =>
+                              sendWaNotification(
+                                shop.whatsapp ?? shop.phone,
+                                `مرحباً، بخصوص طلب المحل «${shop.name}» في دليل مأرب، نود التواصل معكم لمراجعة طلبكم.`,
+                              )
+                                ? toast.success("تم تجهيز رسالة واتساب")
+                                : toastFail("لا يوجد رقم واتساب لصاحب المحل")
+                            }
+                            className="bg-[#25D366] text-white rounded-lg px-3 py-1.5 text-xs font-bold"
+                          >
+                            💬 تواصل واتساب
+                          </button>
+                        )}
                         <button
-                          onClick={() => setConfirmDelete(shop)}
+                          onClick={() => {
+                            setModerationReason("");
+                            setConfirmDelete(shop);
+                          }}
                           className="bg-emergency text-emergency-foreground rounded-lg px-3 py-1.5 text-xs font-bold"
                         >
                           🗑 حذف
@@ -446,6 +473,70 @@ function AdminPage() {
         {tab === "banners" && <BannersManager />}
         {tab === "broadcast" && <BroadcastPanel />}
       </main>
+
+      {rejectShop && (
+        <div
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          onClick={() => setRejectShop(null)}
+        >
+          <div
+            className="w-full max-w-md bg-card text-foreground rounded-2xl shadow-elegant overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
+            <div className="bg-emergency text-emergency-foreground p-4 text-center">
+              <h3 className="font-black">سبب رفض المحل</h3>
+              <p className="text-xs opacity-90 mt-1">«{rejectShop.name}»</p>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {MODERATION_REASONS.map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setModerationReason(reason)}
+                    className="text-xs rounded-full border border-border bg-secondary px-3 py-1.5 font-bold"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={moderationReason}
+                onChange={(e) => setModerationReason(e.target.value)}
+                minLength={3}
+                maxLength={500}
+                rows={4}
+                placeholder="اكتب سبب الرفض بوضوح..."
+                className="w-full rounded-xl border border-border bg-background p-3 text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (moderationReason.trim().length < 3) {
+                      toastFail("اكتب سبب الرفض أولاً");
+                      return;
+                    }
+                    const shop = rejectShop;
+                    setRejectShop(null);
+                    await act(shop.id, "reject", moderationReason.trim());
+                    setModerationReason("");
+                  }}
+                  className="flex-1 bg-emergency text-emergency-foreground rounded-xl py-2.5 font-bold text-sm"
+                >
+                  تأكيد الرفض
+                </button>
+                <button
+                  onClick={() => setRejectShop(null)}
+                  className="flex-1 bg-secondary border border-border rounded-xl py-2.5 font-bold text-sm"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmDelete && (
         <div
@@ -466,12 +557,38 @@ function AdminPage() {
                 هل أنت متأكد من حذف <span className="font-bold">«{confirmDelete.name}»</span>{" "}
                 نهائياً؟
               </p>
+              <div className="flex flex-wrap gap-2">
+                {MODERATION_REASONS.map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setModerationReason(reason)}
+                    className="text-xs rounded-full border border-border bg-secondary px-3 py-1.5 font-bold"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={moderationReason}
+                onChange={(e) => setModerationReason(e.target.value)}
+                minLength={3}
+                maxLength={500}
+                rows={4}
+                placeholder="اكتب سبب الحذف بوضوح..."
+                className="w-full rounded-xl border border-border bg-background p-3 text-sm"
+              />
               <div className="flex gap-2">
                 <button
                   onClick={async () => {
+                    if (moderationReason.trim().length < 3) {
+                      toastFail("اكتب سبب الحذف أولاً");
+                      return;
+                    }
                     const id = confirmDelete.id;
                     setConfirmDelete(null);
-                    await act(id, "delete");
+                    await act(id, "delete", moderationReason.trim());
+                    setModerationReason("");
                   }}
                   className="flex-1 bg-emergency text-emergency-foreground rounded-xl py-2.5 font-bold text-sm"
                 >

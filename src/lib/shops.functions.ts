@@ -3,6 +3,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const idSchema = z.object({ shopId: z.string().uuid() });
+const moderationSchema = z.object({
+  shopId: z.string().uuid(),
+  reason: z.string().trim().min(3).max(500),
+});
+const newShopSchema = z.object({ shopId: z.string().uuid() });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -21,44 +26,182 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   }
 }
 
+function runtimeEnv(): Record<string, string | undefined> {
+  return (
+    (
+      globalThis as typeof globalThis & {
+        process?: { env?: Record<string, string | undefined> };
+      }
+    ).process?.env ?? {}
+  );
+}
+
+async function sendWhatsAppWebhook(payload: Record<string, unknown>): Promise<void> {
+  const webhookUrl = runtimeEnv().WHATSAPP_ALERT_WEBHOOK_URL;
+  if (!webhookUrl) return;
+  try {
+    const url = new URL(webhookUrl);
+    if (url.protocol !== "https:" || url.username || url.password) {
+      console.error("[WhatsAppAlert] Webhook URL must use HTTPS and cannot contain credentials.");
+      return;
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        redirect: "error",
+        signal: controller.signal,
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        console.error(`[WhatsAppAlert] Webhook delivery failed with HTTP ${response.status}.`);
+      }
+    } catch (error) {
+      const reason = error instanceof Error && error.name === "AbortError" ? "timeout" : "network";
+      console.error(`[WhatsAppAlert] Webhook delivery failed (${reason}).`);
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch {
+    console.error("[WhatsAppAlert] Configured webhook URL is invalid.");
+  }
+}
+
+async function fetchShopForModeration(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  shopId: string,
+) {
+  const { data, error } = await supabaseAdmin
+    .from("shops")
+    .select("id, owner_id, name, phone, whatsapp")
+    .eq("id", shopId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("المحل غير موجود.");
+  return data;
+}
 export const adminApproveShop = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    // Use the caller's RLS client: the shops_before_update trigger checks
-    // has_role(auth.uid()), which is NULL under the service-role client and
-    // silently reverts the status change.
-    const { error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const shop = await fetchShopForModeration(supabaseAdmin, data.shopId);
+    const { data: approved, error } = await context.supabase
       .from("shops")
       .update({ status: "approved" })
-      .eq("id", data.shopId);
+      .eq("id", data.shopId)
+      .select("id,name,status,owner_id,phone,whatsapp")
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    return { ok: true };
+    if (!approved || approved.status !== "approved") {
+      throw new Error("تعذّر تأكيد اعتماد المحل في قاعدة البيانات.");
+    }
+    const { error: notificationError } = await supabaseAdmin.from("notifications").insert({
+      user_id: approved.owner_id,
+      type: "shop_approved",
+      title: "تم اعتماد محلك 🎉",
+      body: `تم اعتماد محلك «${approved.name}» بنجاح وأصبح ظاهرًا في الدليل.`,
+      shop_id: approved.id,
+    });
+    if (notificationError) {
+      console.error("[Admin] Failed to notify shop owner:", notificationError.code);
+    }
+    await sendWhatsAppWebhook({
+      event: "shop_approved",
+      shop_id: approved.id,
+      shop_name: approved.name,
+      phone: approved.whatsapp || approved.phone || shop.phone,
+      message: `تم اعتماد محلك «${approved.name}» بنجاح وأصبح ظاهرًا في دليل مأرب.`,
+    });
+    return { ok: true as const, shop: approved };
   });
 
 export const adminRejectShop = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d: unknown) => idSchema.parse(d))
+  .validator((d: unknown) => moderationSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const shop = await fetchShopForModeration(supabaseAdmin, data.shopId);
+    const { data: rejected, error } = await context.supabase
       .from("shops")
-      .update({ status: "rejected" })
-      .eq("id", data.shopId);
+      .update({ status: "rejected", rejection_reason: data.reason })
+      .eq("id", data.shopId)
+      .select("id,name,status,owner_id,phone,whatsapp,rejection_reason")
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    return { ok: true };
+    if (!rejected || rejected.status !== "rejected") {
+      throw new Error("تعذّر تأكيد رفض المحل في قاعدة البيانات.");
+    }
+    await sendWhatsAppWebhook({
+      event: "shop_rejected",
+      shop_id: rejected.id,
+      shop_name: rejected.name,
+      phone: rejected.whatsapp || rejected.phone,
+      reason: data.reason,
+      message: `نعتذر، تم رفض طلب المحل «${rejected.name}» بسبب: ${data.reason}`,
+    });
+    return { ok: true as const, shop: rejected };
   });
 
 export const adminDeleteShop = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d: unknown) => idSchema.parse(d))
+  .validator((d: unknown) => moderationSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const shop = await fetchShopForModeration(supabaseAdmin, data.shopId);
+    const { error: auditError } = await supabaseAdmin.from("shop_moderation_audit").insert({
+      shop_id: shop.id,
+      owner_id: shop.owner_id,
+      shop_name: shop.name,
+      action: "deleted",
+      reason: data.reason,
+      moderated_by: context.userId,
+    });
+    if (auditError) throw new Error("تعذّر حفظ سبب حذف المحل.");
+    const { error: notificationError } = await supabaseAdmin.from("notifications").insert({
+      user_id: shop.owner_id,
+      type: "shop_rejected",
+      title: "تم حذف طلب المحل",
+      body: `تم حذف المحل «${shop.name}». السبب: ${data.reason}`,
+      shop_id: null,
+    });
+    if (notificationError)
+      console.error("[Admin] Failed to notify deleted shop owner:", notificationError.code);
     const { error } = await supabaseAdmin.from("shops").delete().eq("id", data.shopId);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    await sendWhatsAppWebhook({
+      event: "shop_deleted",
+      shop_id: shop.id,
+      shop_name: shop.name,
+      phone: shop.whatsapp || shop.phone,
+      reason: data.reason,
+      message: `تم حذف المحل «${shop.name}» بسبب: ${data.reason}`,
+    });
+    return { ok: true as const };
+  });
+
+/** Notify admins and optional WhatsApp webhook after a new shop request is created. */
+export const notifyAdminNewShop = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => newShopSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const shop = await fetchShopForModeration(supabaseAdmin, data.shopId);
+    if (shop.owner_id !== context.userId) throw new Error("لا تملك هذا المحل.");
+    await sendWhatsAppWebhook({
+      event: "shop_pending",
+      shop_id: shop.id,
+      shop_name: shop.name,
+      phone: shop.whatsapp || shop.phone,
+      owner_id: shop.owner_id,
+      message: `طلب محل جديد بانتظار الاعتماد: ${shop.name}`,
+    });
+    return { ok: true as const };
   });
 
 export const adminListShops = createServerFn({ method: "POST" })

@@ -20,6 +20,7 @@ export interface Shop {
   rating: number;
   visits: number;
   status: "pending" | "approved" | "rejected";
+  rejection_reason: string | null;
   specialties: string[];
   is_24_7: boolean;
   image_url: string | null;
@@ -154,26 +155,9 @@ export async function createShop(input: CreateShopInput, ownerId: string) {
   const numbers = [input.phone, input.whatsapp].filter(Boolean) as string[];
   for (const num of numbers) {
     const clean = num.trim();
-    // Only digits and an optional leading "+" are allowed: prevents any filter
-    // syntax (commas, parentheses, dots) from reaching the query builder.
     if (!/^\+?\d{7,15}$/.test(clean)) {
-      throw new Error(`الرقم ${num} غير صالح — يجب أن يحتوي على أرقام فقط (7 إلى 15 رقماً).`);
+      throw new Error(`الرقم ${clean} غير صالح — يجب أن يحتوي على أرقام فقط (7 إلى 15 رقماً).`);
     }
-    const [byPhone, byWhatsapp] = await Promise.all([
-      supabase.from("shops").select("id").eq("phone", clean).limit(1),
-      supabase.from("shops").select("id").eq("whatsapp", clean).limit(1),
-    ]);
-    if ((byPhone.data?.length ?? 0) > 0 || (byWhatsapp.data?.length ?? 0) > 0) {
-      throw new Error(`الرقم ${clean} مسجّل مسبقاً في محل آخر — لا يمكن تكراره.`);
-    }
-  }
-  const { data: dupName } = await supabase
-    .from("shops")
-    .select("id")
-    .ilike("name", input.name)
-    .limit(1);
-  if (dupName && dupName.length > 0) {
-    throw new Error("يوجد محل مسجل مسبقاً بنفس الاسم.");
   }
 
   const { data: created, error } = await supabase
@@ -210,6 +194,7 @@ export async function createShop(input: CreateShopInput, ownerId: string) {
   if (created?.id && (bank.bank_name || bank.bank_account_holder || bank.bank_account_number)) {
     await supabase.from("shop_bank_details").upsert({ shop_id: created.id, ...bank });
   }
+  return created?.id ?? null;
 }
 
 export async function updateOwnShop(id: string, patch: Partial<CreateShopInput>) {

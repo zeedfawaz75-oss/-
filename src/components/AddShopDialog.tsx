@@ -6,6 +6,8 @@ import { createShop, uploadShopImage } from "@/lib/shops";
 import { compressImage } from "@/lib/image-compress";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyAdminNewShop } from "@/lib/shops.functions";
 
 interface Props {
   open: boolean;
@@ -45,6 +47,7 @@ export function AddShopDialog({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
+  const notifyAdmin = useServerFn(notifyAdminNewShop);
 
   const sector = useMemo(() => findSector(sectorId), [sectorId]);
   const show247 = TWENTY_FOUR_SEVEN_SECTORS.has(sectorId);
@@ -124,7 +127,7 @@ export function AddShopDialog({
         setSubmitting(false);
         return;
       }
-      await createShop(
+      const shopId = await createShop(
         {
           sector_id: sectorId,
           subsection_id: subId,
@@ -144,6 +147,11 @@ export function AddShopDialog({
         },
         user.id,
       );
+      if (shopId) {
+        await notifyAdmin({ data: { shopId } }).catch((err) =>
+          console.error("[ShopRequest] Failed to notify administrators.", err),
+        );
+      }
       setSuccess(true);
       onCreated?.();
     } catch (err) {
@@ -439,6 +447,10 @@ export function AddShopDialog({
               {uploadingImage && (
                 <p className="text-[11px] text-muted-foreground mt-1">جارٍ ضغط ورفع الصورة…</p>
               )}
+              <p className="text-[11px] text-emergency font-bold mt-1">
+                تنبيه: يجب أن تطابق الصورة واجهة المحل أو لافتته ونشاطه الفعلي، وسيتم رفض أي طلب
+                بصورة غير مطابقة.
+              </p>
               {!imageUrl && !uploadingImage && (
                 <p className="text-[11px] text-emergency font-bold mt-1">
                   ⚠️ صورة المحل إجبارية لإتمام التسجيل.

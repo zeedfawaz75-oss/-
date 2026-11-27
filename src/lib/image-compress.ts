@@ -2,7 +2,7 @@
 // Keeps storage small and the app fast on weak connections.
 
 const MAX_DIMENSION = 1280;
-const TARGET_QUALITY = 0.78;
+const TARGET_QUALITY = 0.75;
 
 export async function compressImage(file: File): Promise<File> {
   if (typeof window === "undefined") return file;

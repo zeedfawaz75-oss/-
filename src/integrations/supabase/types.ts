@@ -329,6 +329,38 @@ export type Database = {
           },
         ];
       };
+      shop_moderation_audit: {
+        Row: {
+          action: "deleted";
+          created_at: string;
+          id: string;
+          moderated_by: string | null;
+          owner_id: string | null;
+          reason: string;
+          shop_id: string | null;
+          shop_name: string;
+        };
+        Insert: {
+          action: "deleted";
+          created_at?: string;
+          id?: string;
+          moderated_by?: string | null;
+          owner_id?: string | null;
+          reason: string;
+          shop_id?: string | null;
+          shop_name: string;
+        };
+        Update: {
+          action?: "deleted";
+          created_at?: string;
+          moderated_by?: string | null;
+          owner_id?: string | null;
+          reason?: string;
+          shop_id?: string | null;
+          shop_name?: string;
+        };
+        Relationships: [];
+      };
       shop_bank_details: {
         Row: {
           bank_account_holder: string | null;
@@ -378,6 +410,7 @@ export type Database = {
           owner_id: string;
           phone: string;
           rating: number;
+          rejection_reason: string | null;
           sector_id: string;
           specialties: string[];
           status: string;
@@ -399,6 +432,7 @@ export type Database = {
           owner_id: string;
           phone: string;
           rating?: number;
+          rejection_reason?: string | null;
           sector_id: string;
           specialties?: string[];
           status?: string;
@@ -420,6 +454,7 @@ export type Database = {
           owner_id?: string;
           phone?: string;
           rating?: number;
+          rejection_reason?: string | null;
           sector_id?: string;
           specialties?: string[];
           status?: string;
