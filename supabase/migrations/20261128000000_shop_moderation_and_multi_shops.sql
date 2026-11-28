@@ -86,7 +86,8 @@ BEGIN
         NEW.owner_id,
         'shop_approved',
         'تم قبول محلك 🎉',
-        'تم اعتماد محلك «' || NEW.name || '» بنجاح وأصبح ظاهرًا في الدليل.',
+        'حياكم الله، تم اعتماد محل ' || NEW.name ||
+          ' في دليل مأرب وأصبح ظاهرًا للباحثين والزوار. نسأل الله لكم التوفيق والبركة في رزقكم، ونتطلع لخدمتكم باستمرار.',
         NEW.id
       );
     ELSIF NEW.status = 'rejected' THEN
@@ -96,8 +97,12 @@ BEGIN
         NEW.owner_id,
         'shop_rejected',
         'تم رفض طلب محلك',
-        'لم يتم اعتماد «' || NEW.name || '».' ||
-          CASE WHEN reason_text IS NOT NULL THEN ' السبب: ' || reason_text ELSE '' END,
+        'حياكم الله، نعتذر عن اعتماد طلب محل ' || NEW.name || ' في دليل مأرب حاليًا.' ||
+          CASE WHEN reason_text IS NOT NULL THEN
+            E'\\nالسبب: ' || reason_text ||
+            E'\\nنرجو منكم معالجة الملاحظة وإعادة إرسال الطلب أو التواصل معنا لنتمكن من اعتماده بكل سرور.'
+          ELSE E'\\nنرجو التواصل معنا لمعالجة الملاحظة وإعادة إرسال الطلب.'
+          END,
         NEW.id
       );
     END IF;

@@ -103,7 +103,7 @@ export const adminApproveShop = createServerFn({ method: "POST" })
       user_id: approved.owner_id,
       type: "shop_approved",
       title: "تم اعتماد محلك 🎉",
-      body: `تم اعتماد محلك «${approved.name}» بنجاح وأصبح ظاهرًا في الدليل.`,
+      body: `حياكم الله، تم اعتماد محل ${approved.name} في دليل مأرب وأصبح ظاهرًا للباحثين والزوار. نسأل الله لكم التوفيق والبركة في رزقكم، ونتطلع لخدمتكم باستمرار.`,
       shop_id: approved.id,
     });
     if (notificationError) {
@@ -114,7 +114,7 @@ export const adminApproveShop = createServerFn({ method: "POST" })
       shop_id: approved.id,
       shop_name: approved.name,
       phone: approved.whatsapp || approved.phone || shop.phone,
-      message: `تم اعتماد محلك «${approved.name}» بنجاح وأصبح ظاهرًا في دليل مأرب.`,
+      message: `حياكم الله، تم اعتماد محل ${approved.name} في دليل مأرب وأصبح ظاهرًا للباحثين والزوار. نسأل الله لكم التوفيق والبركة في رزقكم، ونتطلع لخدمتكم باستمرار.`,
     });
     return { ok: true as const, shop: approved };
   });
@@ -142,7 +142,7 @@ export const adminRejectShop = createServerFn({ method: "POST" })
       shop_name: rejected.name,
       phone: rejected.whatsapp || rejected.phone,
       reason: data.reason,
-      message: `نعتذر، تم رفض طلب المحل «${rejected.name}» بسبب: ${data.reason}`,
+      message: `حياكم الله، نعتذر عن اعتماد طلب محل ${rejected.name} في دليل مأرب حاليًا.\nالسبب: ${data.reason}\nنرجو منكم معالجة الملاحظة وإعادة إرسال الطلب أو التواصل معنا لنتمكن من اعتماده بكل سرور.`,
     });
     return { ok: true as const, shop: rejected };
   });
@@ -167,7 +167,7 @@ export const adminDeleteShop = createServerFn({ method: "POST" })
       user_id: shop.owner_id,
       type: "shop_rejected",
       title: "تم حذف طلب المحل",
-      body: `تم حذف المحل «${shop.name}». السبب: ${data.reason}`,
+      body: `حياكم الله، نحيطكم علمًا بأنه تم حذف سجل ${shop.name} من دليل مأرب.\nالسبب: ${data.reason}\nلأي استفسار أو مراجعة بخصوص السجل، يسعدنا تواصلكم معنا في أي وقت.`,
       shop_id: null,
     });
     if (notificationError)
@@ -180,7 +180,7 @@ export const adminDeleteShop = createServerFn({ method: "POST" })
       shop_name: shop.name,
       phone: shop.whatsapp || shop.phone,
       reason: data.reason,
-      message: `تم حذف المحل «${shop.name}» بسبب: ${data.reason}`,
+      message: `حياكم الله، نحيطكم علمًا بأنه تم حذف سجل ${shop.name} من دليل مأرب.\nالسبب: ${data.reason}\nلأي استفسار أو مراجعة بخصوص السجل، يسعدنا تواصلكم معنا في أي وقت.`,
     });
     return { ok: true as const };
   });
@@ -214,7 +214,43 @@ export const adminListShops = createServerFn({ method: "POST" })
       .select("*")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows = data ?? [];
+    const ownerIds = [...new Set(rows.map((row) => row.owner_id).filter(Boolean))];
+    const ownerShopCounts = new Map<string, number>();
+    const rejectedOwnerIds = new Set<string>();
+    const deletedOwnerIds = new Set<string>();
+
+    if (ownerIds.length) {
+      const [{ data: ownerShops }, { data: rejectedShops }, { data: deletedAudit }] =
+        await Promise.all([
+          supabaseAdmin.from("shops").select("owner_id").in("owner_id", ownerIds),
+          supabaseAdmin
+            .from("shops")
+            .select("owner_id")
+            .in("owner_id", ownerIds)
+            .eq("status", "rejected"),
+          supabaseAdmin
+            .from("shop_moderation_audit")
+            .select("owner_id")
+            .in("owner_id", ownerIds)
+            .eq("action", "deleted"),
+        ]);
+
+      for (const row of ownerShops ?? []) {
+        ownerShopCounts.set(row.owner_id, (ownerShopCounts.get(row.owner_id) ?? 0) + 1);
+      }
+      for (const row of rejectedShops ?? []) rejectedOwnerIds.add(row.owner_id);
+      for (const row of deletedAudit ?? []) {
+        if (row.owner_id) deletedOwnerIds.add(row.owner_id);
+      }
+    }
+
+    return rows.map((row) => ({
+      ...row,
+      owner_shop_count: ownerShopCounts.get(row.owner_id) ?? 1,
+      has_rejected_shop: rejectedOwnerIds.has(row.owner_id),
+      has_deleted_shop: deletedOwnerIds.has(row.owner_id),
+    }));
   });
 
 export const adminPendingCount = createServerFn({ method: "POST" })

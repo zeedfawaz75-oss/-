@@ -39,6 +39,9 @@ interface ShopRow {
   subsection_id: string;
   status: string;
   rejection_reason?: string | null;
+  owner_shop_count?: number;
+  has_rejected_shop?: boolean;
+  has_deleted_shop?: boolean;
   created_at: string;
   image_url?: string | null;
 }
@@ -143,10 +146,10 @@ function AdminPage() {
       if (shop) {
         const msg =
           kind === "approve"
-            ? `تم اعتماد محلك «${shop.name}» ونشره في دليل مأرب 🎉`
+            ? `حياكم الله، تم اعتماد محل ${shop.name} في دليل مأرب وأصبح ظاهرًا للباحثين والزوار. نسأل الله لكم التوفيق والبركة في رزقكم، ونتطلع لخدمتكم باستمرار.`
             : kind === "reject"
-              ? `نعتذر، تم رفض طلب المحل «${shop.name}» بسبب: ${reason}`
-              : `تم حذف المحل «${shop.name}» بسبب: ${reason}`;
+              ? `حياكم الله، نعتذر عن اعتماد طلب محل ${shop.name} في دليل مأرب حاليًا.\nالسبب: ${reason}\nنرجو منكم معالجة الملاحظة وإعادة إرسال الطلب أو التواصل معنا لنتمكن من اعتماده بكل سرور.`
+              : `حياكم الله، نحيطكم علمًا بأنه تم حذف سجل ${shop.name} من دليل مأرب.\nالسبب: ${reason}\nلأي استفسار أو مراجعة بخصوص السجل، يسعدنا تواصلكم معنا في أي وقت.`;
         toast.success("إشعار جاهز للإرسال عبر واتساب", {
           action: {
             label: "إرسال 💬",
@@ -390,6 +393,27 @@ function AdminPage() {
                             <p className="text-xs text-muted-foreground">
                               {sector?.icon} {sector?.title} ← {sub?.title}
                             </p>
+                            {(shop.owner_shop_count ?? 1) > 1 ||
+                            shop.has_rejected_shop ||
+                            shop.has_deleted_shop ? (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {(shop.owner_shop_count ?? 1) > 1 && (
+                                  <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-bold text-gold">
+                                    {`يمتلك ${shop.owner_shop_count} محلات`}
+                                  </span>
+                                )}
+                                {shop.has_rejected_shop && (
+                                  <span className="rounded-full bg-emergency/10 px-2 py-0.5 text-[10px] font-bold text-emergency">
+                                    لديه طلب سابق مرفوض
+                                  </span>
+                                )}
+                                {shop.has_deleted_shop && (
+                                  <span className="rounded-full bg-emergency/10 px-2 py-0.5 text-[10px] font-bold text-emergency">
+                                    سبق له سجل محذوف
+                                  </span>
+                                )}
+                              </div>
+                            ) : null}
                             {!shop.image_url && (
                               <span className="text-[11px] text-emergency">
                                 لا توجد صورة مرفوعة
