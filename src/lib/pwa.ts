@@ -6,6 +6,86 @@
 const APP_SW_PATH = "/sw.js";
 export const PWA_UPDATE_EVENT = "marib:pwa-update-available";
 const UPDATE_REQUESTED_KEY = "marib:pwa-update-requested";
+const APP_CACHE_PATTERN =
+  /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-|^(html-pages|app-assets|images|supabase-data|supabase-images|gfonts-css|gfonts-files)$|^marib-/;
+
+function isAppServiceWorker(registration: ServiceWorkerRegistration): boolean {
+  const workers = [registration.active, registration.installing, registration.waiting];
+  return workers.some((worker) => {
+    if (!worker) return false;
+    try {
+      return new URL(worker.scriptURL).pathname === APP_SW_PATH;
+    } catch {
+      return false;
+    }
+  });
+}
+
+function waitForActivation(worker: ServiceWorker): Promise<void> {
+  if (worker.state === "activated") return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      worker.removeEventListener("statechange", onStateChange);
+      reject(new Error("انتهت مهلة تفعيل عامل التطبيق."));
+    }, 10000);
+    const onStateChange = () => {
+      if (worker.state === "activated") {
+        window.clearTimeout(timeout);
+        worker.removeEventListener("statechange", onStateChange);
+        resolve();
+      } else if (worker.state === "redundant") {
+        window.clearTimeout(timeout);
+        worker.removeEventListener("statechange", onStateChange);
+        reject(new Error("تعذّر تفعيل تحديث التطبيق."));
+      }
+    };
+    worker.addEventListener("statechange", onStateChange);
+    onStateChange();
+  });
+}
+
+export async function refreshAppAndClearCache(): Promise<void> {
+  let updateError: unknown;
+  if ("serviceWorker" in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      let registration = registrations.find(isAppServiceWorker);
+      if (!registration) {
+        registration = await navigator.serviceWorker.register(APP_SW_PATH, {
+          scope: "/",
+          updateViaCache: "none",
+        });
+      }
+
+      await registration.update();
+      const worker = registration.installing ?? registration.waiting;
+      if (worker) {
+        if (worker.state === "installed") {
+          worker.postMessage({ type: "SKIP_WAITING" });
+        }
+        await waitForActivation(worker);
+      }
+    } catch (error) {
+      updateError = error;
+    }
+  } else {
+    updateError = new Error("تحديث التطبيق غير مدعوم في هذا المتصفح.");
+  }
+
+  if ("caches" in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter((name) => APP_CACHE_PATTERN.test(name))
+        .map(async (name) => {
+          if (!(await caches.delete(name))) {
+            throw new Error(`تعذّر حذف ذاكرة التطبيق القديمة: ${name}`);
+          }
+        }),
+    );
+  }
+  if (updateError) throw updateError;
+}
 
 function announceUpdate() {
   window.dispatchEvent(new Event(PWA_UPDATE_EVENT));

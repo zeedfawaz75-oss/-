@@ -10,6 +10,7 @@ import {
   Headset,
   MessageCircle,
   PhoneCall,
+  RefreshCw,
   ShieldCheck,
 } from "lucide-react";
 import { ModalCloseButton } from "@/components/ModalCloseButton";
@@ -18,6 +19,7 @@ import { LEGAL_PAGE_TITLES, type LegalPageSlug } from "@/lib/legal-content";
 import { APP_SHARE_TEXT, APP_URL } from "@/lib/share";
 import { SUPPORT_PHONE_DISPLAY, SUPPORT_WHATSAPP } from "@/lib/support";
 import { toast } from "sonner";
+import { refreshAppAndClearCache } from "@/lib/pwa";
 
 type HelpSubpage = "guide" | "faq" | "contact" | LegalPageSlug;
 
@@ -92,6 +94,7 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [legalPage, setLegalPage] = useState<{ title: string; content: string } | null>(null);
   const [legalLoading, setLegalLoading] = useState(false);
   const [legalError, setLegalError] = useState("");
+  const [refreshingApp, setRefreshingApp] = useState(false);
   const legalRequestId = useRef(0);
   const getLegalPageFn = useServerFn(getLegalPage);
 
@@ -134,6 +137,17 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
       toast.success("تم نسخ الرابط");
     } catch {
       toast.error("تعذّر نسخ الرابط. تحقق من أذونات المتصفح وحاول مجدداً.");
+    }
+  };
+
+  const refreshApp = async () => {
+    setRefreshingApp(true);
+    try {
+      await refreshAppAndClearCache();
+      window.location.reload();
+    } catch (error) {
+      setRefreshingApp(false);
+      toast.error(error instanceof Error ? error.message : "تعذّر تحديث التطبيق.");
     }
   };
 
@@ -325,7 +339,7 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
 
         <div className="p-4 border-t border-border bg-secondary/20 shrink-0">
           {!subpage && (
-            <div className="mb-3 grid grid-cols-2 gap-2">
+            <div className="mb-3 grid grid-cols-3 gap-2">
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(APP_SHARE_TEXT)}`}
                 target="_blank"
@@ -338,10 +352,20 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
               <button
                 type="button"
                 onClick={copyAppLink}
-                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary/60 px-2 py-2 text-[11px] font-bold text-foreground transition-smooth hover:bg-secondary"
+                className="flex items-center justify-center gap-1 rounded-lg border border-border bg-secondary/60 px-1.5 py-2 text-[10px] font-bold text-foreground transition-smooth hover:bg-secondary"
               >
                 <Copy size={15} />
                 <span>نسخ رابط التطبيق</span>
+              </button>
+              <button
+                type="button"
+                onClick={refreshApp}
+                disabled={refreshingApp}
+                aria-live="polite"
+                className="flex items-center justify-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-1.5 py-2 text-[10px] font-bold text-primary transition-smooth hover:bg-primary/15 disabled:opacity-60"
+              >
+                <RefreshCw size={14} className={refreshingApp ? "animate-spin" : ""} />
+                <span>{refreshingApp ? "جارٍ التحديث…" : "تحديث التطبيق"}</span>
               </button>
             </div>
           )}
