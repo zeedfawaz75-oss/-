@@ -80,53 +80,57 @@ export function AdsSlider() {
         <div className="flex-1 h-px bg-gold-gradient opacity-40" />
       </div>
 
-      <a
-        href={ad.href ?? "#"}
-        target={ad.href ? "_blank" : undefined}
-        rel="noopener noreferrer"
-        className="relative block h-40 sm:h-48 rounded-2xl overflow-hidden shadow-elegant group"
-      >
-        <img
-          src={ad.image}
-          alt={ad.title}
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        <div aria-hidden className="absolute inset-0" style={{ background: ad.gradient }} />
-        <div className="relative h-full flex flex-col justify-end p-5 text-white">
-          <h3
-            className="text-lg sm:text-xl font-black mb-1 drop-shadow"
-            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}
-          >
-            {ad.title}
-          </h3>
-          <p className="text-xs sm:text-sm text-white/90 mb-3 line-clamp-2 max-w-lg">
-            {ad.subtitle}
-          </p>
-          <span className="self-start inline-flex items-center gap-1.5 bg-white text-foreground rounded-full px-3.5 py-1.5 text-xs font-black shadow-md">
-            {ad.cta} <span>←</span>
-          </span>
-        </div>
+      <div className="relative h-40 sm:h-48 rounded-2xl overflow-hidden shadow-elegant group">
+        <a
+          href={ad.href ?? "#"}
+          target={ad.href ? "_blank" : undefined}
+          rel="noopener noreferrer"
+          className="absolute inset-0 block"
+        >
+          <img
+            src={ad.image}
+            alt={ad.title}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+          <div aria-hidden className="absolute inset-0" style={{ background: ad.gradient }} />
+          <div className="relative h-full flex flex-col justify-end p-5 text-white">
+            <h3
+              className="text-lg sm:text-xl font-black mb-1 drop-shadow"
+              style={{ textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}
+            >
+              {ad.title}
+            </h3>
+            <p className="text-xs sm:text-sm text-white/90 mb-3 line-clamp-2 max-w-lg">
+              {ad.subtitle}
+            </p>
+            <span className="self-start inline-flex items-center gap-1.5 bg-white text-foreground rounded-full px-3.5 py-1.5 text-xs font-black shadow-md">
+              {ad.cta} <span>←</span>
+            </span>
+          </div>
+        </a>
 
-        {/* Dots */}
-        <div className="absolute top-3 right-3 flex gap-1.5">
+        <div className="absolute top-0 right-0 z-10 flex gap-1">
           {items.map((a, idx) => (
             <button
               key={a.id}
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setI(idx);
-              }}
+              onClick={() => setI(idx)}
               aria-label={`إعلان ${idx + 1}`}
-              className={`w-2 h-2 rounded-full transition-all ${
-                idx === i ? "bg-white w-6" : "bg-white/50"
-              }`}
-            />
+              aria-pressed={idx === i}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+            >
+              <span
+                aria-hidden="true"
+                className={`block h-2 rounded-full transition-all ${
+                  idx === i ? "w-6 bg-white" : "w-2 bg-white/50"
+                }`}
+              />
+            </button>
           ))}
         </div>
-      </a>
+      </div>
     </section>
   );
 }
