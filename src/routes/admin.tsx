@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   adminApproveShop,
@@ -9,16 +9,31 @@ import {
   adminStats,
 } from "@/lib/shops.functions";
 import { adminOverview } from "@/lib/admin.functions";
-import { CategoriesManager } from "@/components/admin/CategoriesManager";
-import { UsersManager } from "@/components/admin/UsersManager";
-import { BannersManager } from "@/components/admin/BannersManager";
-import { BroadcastPanel } from "@/components/admin/BroadcastPanel";
 import { findSector, findSubsection } from "@/lib/directory-data";
 import { ShopThumb } from "@/components/ShopThumb";
 import { useAdmin } from "@/hooks/useAdmin";
 import { toast } from "sonner";
 import { toastFail } from "@/lib/toast-ar";
 import { sendWaNotification } from "@/lib/wa-notify";
+
+const CategoriesManager = lazy(() =>
+  import("@/components/admin/CategoriesManager").then((module) => ({
+    default: module.CategoriesManager,
+  })),
+);
+const UsersManager = lazy(() =>
+  import("@/components/admin/UsersManager").then((module) => ({ default: module.UsersManager })),
+);
+const BannersManager = lazy(() =>
+  import("@/components/admin/BannersManager").then((module) => ({
+    default: module.BannersManager,
+  })),
+);
+const BroadcastPanel = lazy(() =>
+  import("@/components/admin/BroadcastPanel").then((module) => ({
+    default: module.BroadcastPanel,
+  })),
+);
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -492,10 +507,18 @@ function AdminPage() {
           </>
         )}
 
-        {tab === "categories" && <CategoriesManager />}
-        {tab === "users" && <UsersManager />}
-        {tab === "banners" && <BannersManager />}
-        {tab === "broadcast" && <BroadcastPanel />}
+        <Suspense
+          fallback={
+            <p className="py-8 text-center text-sm text-muted-foreground" role="status">
+              جارٍ تحميل القسم...
+            </p>
+          }
+        >
+          {tab === "categories" && <CategoriesManager />}
+          {tab === "users" && <UsersManager />}
+          {tab === "banners" && <BannersManager />}
+          {tab === "broadcast" && <BroadcastPanel />}
+        </Suspense>
       </main>
 
       {rejectShop && (

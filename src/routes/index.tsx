@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { type Sector } from "@/lib/directory-data";
 import { useCategories } from "@/hooks/useCategories";
 import {
@@ -11,13 +11,16 @@ import {
 import { fuzzyIncludes } from "@/lib/shop-validation";
 import { ShopCard } from "@/components/ShopCard";
 import { ShopGrid } from "@/components/ShopGrid";
-import { AddShopDialog } from "@/components/AddShopDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { SplashScreen } from "@/components/SplashScreen";
 import { HeaderActions } from "@/components/HeaderActions";
 import { InstallButton } from "@/components/InstallButton";
 import { AdsSlider } from "@/components/AdsSlider";
 import type { User } from "@supabase/supabase-js";
+
+const AddShopDialog = lazy(() =>
+  import("@/components/AddShopDialog").then((module) => ({ default: module.AddShopDialog })),
+);
 
 // Quick services — horizontal scroll strip on the home screen
 const QUICK_SERVICES: {
@@ -89,9 +92,10 @@ export const Route = createFileRoute("/")({
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "preconnect", href: "https://images.unsplash.com" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Aref+Ruqaa:wght@400;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Aref+Ruqaa:wght@700&display=swap",
       },
     ],
   }),
@@ -222,10 +226,16 @@ function DirectoryPage() {
         <header className="relative z-40 text-primary-foreground shadow-elegant">
           {/* Background image — Marib landscape (desert oasis / historic ruins) */}
           <img
-            src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1280&q=60"
+            src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=960&h=540&q=55"
+            srcSet="https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=640&h=360&q=55 640w, https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=960&h=540&q=55 960w, https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1280&h=720&q=55 1280w"
+            sizes="100vw"
             alt="محافظة مأرب"
             className="absolute inset-0 w-full h-full object-cover"
+            width={1280}
+            height={720}
             loading="eager"
+            fetchPriority="high"
+            decoding="async"
           />
           {/* Brand-tinted overlay to keep contrast + preserve identity */}
           <div
@@ -510,13 +520,26 @@ function DirectoryPage() {
 
       {/* Add-shop FAB removed from home per product decision — accessible via subsection views and admin. */}
 
-      <AddShopDialog
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        initialSectorId={addPrefill.sectorId}
-        initialSubsectionId={addPrefill.subId}
-        onCreated={reloadShops}
-      />
+      {addOpen && (
+        <Suspense
+          fallback={
+            <div
+              className="fixed inset-0 z-[120] grid place-items-center bg-background/70 text-sm font-bold"
+              role="status"
+            >
+              جارٍ تحميل نموذج إضافة المحل...
+            </div>
+          }
+        >
+          <AddShopDialog
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            initialSectorId={addPrefill.sectorId}
+            initialSubsectionId={addPrefill.subId}
+            onCreated={reloadShops}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
@@ -525,41 +548,41 @@ function DirectoryPage() {
 // Each background sets the mood for a sector; bold overlay keeps text readable.
 const SECTOR_IMAGES: Record<string, string> = {
   electronics:
-    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=640&q=55",
   construction:
-    "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=640&q=55",
   finance:
-    "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=640&q=55",
   workshops:
-    "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=640&q=55",
   "food-trade":
-    "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=640&q=55",
   fashion:
-    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=640&q=55",
   "emergency-health":
-    "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=640&q=55",
   "education-training":
-    "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=640&q=55",
   sports:
-    "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=640&q=55",
   beauty:
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=70",
-  cars: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=640&q=55",
+  cars: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=640&q=55",
   hospitality:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=640&q=55",
   "food-services":
-    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=640&q=55",
   // الحراج والأسواق الشعبية — سوق تقليدي مفتوح
   haraj:
-    "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?auto=format&fit=crop&w=640&q=55",
   // الزراعة والثروة الحيوانية — حقول ومحاصيل
   "agri-vet":
-    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=640&q=55",
   // النقل والسفر — طائرة/طريق
   "transport-travel":
-    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=70",
+    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=640&q=55",
   // خدمات عامة ومتنوعة — عمّال خدمات
-  misc: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=70",
+  misc: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=640&q=55",
 };
 
 function SectorsView({
@@ -593,7 +616,7 @@ function SectorsView({
               .join(" • ");
             const image =
               SECTOR_IMAGES[sector.id] ??
-              "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=70";
+              "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=640&q=55";
             return (
               <button
                 key={sector.id}
