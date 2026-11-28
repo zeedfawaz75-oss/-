@@ -1,0 +1,4 @@
+Contact: https://wa.me/967718667758
+Expires: 2027-11-28T00:00:00Z
+Preferred-Languages: ar
+Canonical: https://worker.zeedfawaz75.workers.dev/.well-known/security.txt
