@@ -136,8 +136,8 @@ export interface CreateShopInput {
   name: string;
   description: string;
   phone: string;
-  whatsapp?: string;
-  address?: string;
+  whatsapp?: string | null;
+  address?: string | null;
   bank_name?: string;
   bank_account_holder?: string;
   bank_account_number?: string;
@@ -148,17 +148,31 @@ export interface CreateShopInput {
   opening_hours?: OpeningHours | null;
 }
 
+function normalizeShopContactNumber(value: string): string {
+  return value.trim().replace(/[^\d+]/g, "");
+}
+
+function validateShopContactNumber(value: string): void {
+  if (value && !/^\+?\d{7,15}$/.test(value)) {
+    throw new Error("رقم التواصل غير صحيح؛ استخدم من 7 إلى 15 رقمًا مع رمز الدولة عند الحاجة.");
+  }
+}
+
+function isShopListingConflict(error: { code?: string | null; message?: string }): boolean {
+  return error.code === "23505" || /shops_owner_listing_unique/i.test(error.message ?? "");
+}
+
+const SHOP_LISTING_CONFLICT_MESSAGE =
+  "لديك محل مسجل بالاسم ورقم التواصل نفسيهما في القسم والنشاط نفسيهما. غيّر الاسم أو رقم التواصل أو القسم/النشاط ثم أعد الحفظ.";
+
 export async function createShop(input: CreateShopInput, ownerId: string) {
   if (!input.image_url || !/^https?:\/\//i.test(input.image_url)) {
     throw new Error("صورة المحل إجبارية لإتمام التسجيل.");
   }
-  const numbers = [input.phone, input.whatsapp].filter(Boolean) as string[];
-  for (const num of numbers) {
-    const clean = num.trim();
-    if (!/^\+?\d{7,15}$/.test(clean)) {
-      throw new Error(`الرقم ${clean} غير صالح — يجب أن يحتوي على أرقام فقط (7 إلى 15 رقماً).`);
-    }
-  }
+  const phone = normalizeShopContactNumber(input.phone);
+  const whatsapp = input.whatsapp ? normalizeShopContactNumber(input.whatsapp) : "";
+  validateShopContactNumber(phone);
+  validateShopContactNumber(whatsapp);
 
   const { data: created, error } = await supabase
     .from("shops")
@@ -168,8 +182,8 @@ export async function createShop(input: CreateShopInput, ownerId: string) {
       subsection_id: input.subsection_id,
       name: input.name,
       description: input.description,
-      phone: input.phone,
-      whatsapp: input.whatsapp || null,
+      phone,
+      whatsapp: whatsapp || null,
       address: input.address || null,
       specialties: (input.specialties ?? []).map((t) => t.trim()).filter(Boolean),
       is_24_7: !!input.is_24_7,
@@ -180,9 +194,7 @@ export async function createShop(input: CreateShopInput, ownerId: string) {
     .select("id")
     .maybeSingle();
   if (error) {
-    if (error.code === "23505") {
-      throw new Error("يوجد محل مسجل مسبقاً بنفس الاسم أو رقم الهاتف أو الواتساب.");
-    }
+    if (isShopListingConflict(error)) throw new Error(SHOP_LISTING_CONFLICT_MESSAGE);
     throw new Error(error.message);
   }
 
@@ -199,8 +211,33 @@ export async function createShop(input: CreateShopInput, ownerId: string) {
 
 export async function updateOwnShop(id: string, patch: Partial<CreateShopInput>) {
   const { bank_name, bank_account_holder, bank_account_number, ...shopPatch } = patch;
-  const { error } = await supabase.from("shops").update(shopPatch).eq("id", id);
-  if (error) throw new Error(error.message);
+  const normalizedPatch: Omit<
+    Partial<CreateShopInput>,
+    "bank_name" | "bank_account_holder" | "bank_account_number"
+  > = { ...shopPatch };
+  if (shopPatch.phone !== undefined) {
+    normalizedPatch.phone = normalizeShopContactNumber(shopPatch.phone);
+    validateShopContactNumber(normalizedPatch.phone);
+  }
+  if (shopPatch.whatsapp !== undefined) {
+    normalizedPatch.whatsapp = shopPatch.whatsapp
+      ? normalizeShopContactNumber(shopPatch.whatsapp)
+      : null;
+    validateShopContactNumber(normalizedPatch.whatsapp ?? "");
+  }
+  if (Object.keys(normalizedPatch).length > 0) {
+    const { data: updated, error } = await supabase
+      .from("shops")
+      .update(normalizedPatch)
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      if (isShopListingConflict(error)) throw new Error(SHOP_LISTING_CONFLICT_MESSAGE);
+      throw new Error(error.message);
+    }
+    if (!updated) throw new Error("تعذّر حفظ التعديل؛ تحقق من أن المحل تابع لحسابك.");
+  }
   if (
     bank_name !== undefined ||
     bank_account_holder !== undefined ||

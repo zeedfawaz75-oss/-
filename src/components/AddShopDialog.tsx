@@ -205,6 +205,11 @@ export function AddShopDialog({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-4 space-y-3">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs leading-6">
+              يمكنك إضافة أكثر من محل، ويُمنع تكرار الاسم ورقم التواصل في القسم والنشاط نفسيهما.
+              يمكنك تعديل بيانات محلاتك وأرقام التواصل من «إدارة محلاتي»؛ اعتماد المحل أو تغيير
+              حالته والاطلاع على سجل التدقيق الإداري صلاحيات للمشرفين فقط.
+            </div>
             <div>
               <label className="block text-xs font-bold text-muted-foreground mb-1">القطاع</label>
               <select

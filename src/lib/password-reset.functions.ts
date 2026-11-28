@@ -1,13 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-
-/** Normalize a Yemeni phone number to its local 9-digit form. */
-function normalizePhone(raw: string): string {
-  let p = raw.replace(/\D/g, "");
-  if (p.startsWith("00967")) p = p.slice(5);
-  else if (p.startsWith("967")) p = p.slice(3);
-  if (p.startsWith("0")) p = p.slice(1);
-  return p;
-}
+import { isValidYemeniPhone, normalizePhone } from "@/lib/phone-auth";
 
 /** Normalize an Arabic full name for comparison (diacritics, alef forms, spacing). */
 function normalizeName(raw: string): string {
@@ -86,7 +78,7 @@ export const registerWithPhone = createServerFn({ method: "POST" })
       .trim()
       .slice(0, 100);
     const password = String(input?.password ?? "");
-    if (!/^7\d{8}$/.test(phone)) throw new Error("الرجاء إدخال رقم جوال يمني صحيح.");
+    if (!isValidYemeniPhone(phone)) throw new Error("الرجاء إدخال رقم جوال يمني صحيح.");
     if (fullName.length < 2) throw new Error("الرجاء إدخال الاسم الكامل.");
     if (!isStrongPassword(password))
       throw new Error("كلمة المرور يجب أن تكون 12 حرفًا وتشمل حروفًا وأرقامًا ورمزًا على الأقل.");

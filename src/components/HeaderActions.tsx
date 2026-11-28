@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Hand, User as UserIcon } from "lucide-react";
 import { ModalCloseButton } from "@/components/ModalCloseButton";
@@ -16,6 +16,15 @@ import { fetchApprovedShops, readCachedApprovedShops, type Shop } from "@/lib/sh
 import { supabase } from "@/integrations/supabase/client";
 import { sendWaNotification } from "@/lib/wa-notify";
 import type { User } from "@supabase/supabase-js";
+
+const AccountSettingsDialog = lazy(() =>
+  import("@/components/AccountSettingsDialog").then((module) => ({
+    default: module.AccountSettingsDialog,
+  })),
+);
+const MyShopsDialog = lazy(() =>
+  import("@/components/MyShopsDialog").then((module) => ({ default: module.MyShopsDialog })),
+);
 
 function timeAgo(ts: number) {
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -70,6 +79,8 @@ export function HeaderActions() {
   const [open, setOpen] = useState(false);
   const [favOpen, setFavOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  const [myShopsOpen, setMyShopsOpen] = useState(false);
   const [loginConfirmOpen, setLoginConfirmOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
@@ -322,9 +333,9 @@ export function HeaderActions() {
         </button>
         {user ? (
           <button
-            onClick={() => setLogoutConfirmOpen(true)}
-            aria-label="تسجيل الخروج"
-            title="تسجيل الخروج"
+            onClick={() => setAccountSettingsOpen(true)}
+            aria-label="إعدادات الحساب"
+            title="إعدادات الحساب"
             className={`${ICON_BTN} bg-gold-gradient text-gold-foreground border-gold/30 hover:opacity-90`}
           >
             <UserIcon size={20} />
@@ -344,6 +355,59 @@ export function HeaderActions() {
 
       {/* Help modal */}
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {accountSettingsOpen && user && (
+        <Suspense
+          fallback={
+            <div
+              className="fixed inset-0 z-[130] grid place-items-center bg-black/50"
+              role="status"
+            >
+              جارٍ تحميل إعدادات الحساب...
+            </div>
+          }
+        >
+          <AccountSettingsDialog
+            user={user}
+            onClose={() => setAccountSettingsOpen(false)}
+            onManageShops={() => {
+              setAccountSettingsOpen(false);
+              setMyShopsOpen(true);
+            }}
+            onLogout={() => {
+              setAccountSettingsOpen(false);
+              setLogoutConfirmOpen(true);
+            }}
+            onPhoneUpdated={(phone, refreshedUser) => {
+              setUser((current) =>
+                refreshedUser
+                  ? refreshedUser
+                  : current
+                    ? {
+                        ...current,
+                        user_metadata: { ...current.user_metadata, phone },
+                      }
+                    : current,
+              );
+            }}
+          />
+        </Suspense>
+      )}
+
+      {myShopsOpen && user && (
+        <Suspense
+          fallback={
+            <div
+              className="fixed inset-0 z-[135] grid place-items-center bg-black/50"
+              role="status"
+            >
+              جارٍ تحميل محلاتك...
+            </div>
+          }
+        >
+          <MyShopsDialog userId={user.id} onClose={() => setMyShopsOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Login confirmation dialog */}
       {loginConfirmOpen && (

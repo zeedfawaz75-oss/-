@@ -11,6 +11,7 @@ import {
 import { reportUnverifiedLoginFailure, isStrongPassword } from "@/lib/auth-security.functions";
 import { toast } from "sonner";
 import { SUPPORT_WHATSAPP } from "@/lib/support";
+import { legacyPhoneToEmail, normalizePhone, phoneToEmail } from "@/lib/phone-auth";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -20,26 +21,6 @@ export const Route = createFileRoute("/auth")({
 });
 
 // رقم واتساب إدارة التطبيق (لطلبات استعادة كلمة المرور)
-// Normalize a Yemeni phone number to its local 9-digit form.
-function normalizePhone(rawPhone: string): string {
-  let p = rawPhone.replace(/[^\d]/g, "");
-  if (p.startsWith("00967")) p = p.slice(5);
-  else if (p.startsWith("967")) p = p.slice(3);
-  if (p.startsWith("0")) p = p.slice(1);
-  return p;
-}
-
-// Phone numbers are the real identity; a synthetic email is generated behind the
-// scenes so Supabase email/password auth can store the credentials (no SMS gateway).
-function phoneToEmail(rawPhone: string): string {
-  return `${normalizePhone(rawPhone)}@marib-dir.com`;
-}
-
-// Accounts created before the domain change still live under the legacy identifier.
-function legacyPhoneToEmail(rawPhone: string): string {
-  return `m${normalizePhone(rawPhone)}@marib.local`;
-}
-
 function isAlreadyRegisteredError(message: string): boolean {
   const m = message.toLowerCase();
   return (
