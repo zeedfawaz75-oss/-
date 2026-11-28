@@ -9,18 +9,81 @@ import {
   type Shop,
 } from "@/lib/shops";
 import { fuzzyIncludes } from "@/lib/shop-validation";
-import { ShopCard } from "@/components/ShopCard";
-import { ShopGrid } from "@/components/ShopGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { SplashScreen } from "@/components/SplashScreen";
 import { HeaderActions } from "@/components/HeaderActions";
 import { InstallButton } from "@/components/InstallButton";
-import { AdsSlider } from "@/components/AdsSlider";
 import type { User } from "@supabase/supabase-js";
 
+const ShopCard = lazy(() =>
+  import("@/components/ShopCard").then((module) => ({ default: module.ShopCard })),
+);
+const ShopGrid = lazy(() =>
+  import("@/components/ShopGrid").then((module) => ({ default: module.ShopGrid })),
+);
+const AdsSlider = lazy(() =>
+  import("@/components/AdsSlider").then((module) => ({ default: module.AdsSlider })),
+);
 const AddShopDialog = lazy(() =>
   import("@/components/AddShopDialog").then((module) => ({ default: module.AddShopDialog })),
 );
+
+function ShopCardPlaceholder() {
+  return <div aria-hidden className="h-64 rounded-2xl border border-border bg-card shadow-soft" />;
+}
+
+function AdsPlaceholder() {
+  return (
+    <section aria-hidden="true" className="mb-8">
+      <div className="mb-3 flex items-center gap-2">
+        <h2 className="text-lg font-bold">📢 إعلانات</h2>
+        <span className="rounded-full border border-gold/40 bg-gold/20 px-2 py-0.5 text-[10px] font-black text-gold">
+          مموّل
+        </span>
+        <div className="h-px flex-1 bg-gold-gradient opacity-40" />
+      </div>
+      <div className="h-40 rounded-2xl bg-secondary sm:h-48" />
+    </section>
+  );
+}
+
+function DeferredAdsSlider() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "400px 0px" },
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef}>
+      {shouldLoad ? (
+        <Suspense fallback={<AdsPlaceholder />}>
+          <AdsSlider />
+        </Suspense>
+      ) : (
+        <AdsPlaceholder />
+      )}
+    </div>
+  );
+}
 
 // Quick services — horizontal scroll strip on the home screen
 const QUICK_SERVICES: {
@@ -93,10 +156,6 @@ export const Route = createFileRoute("/")({
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "preconnect", href: "https://images.unsplash.com" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Aref+Ruqaa:wght@700&display=swap",
-      },
     ],
   }),
   component: DirectoryPage,
@@ -112,6 +171,20 @@ function DirectoryPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [addPrefill, setAddPrefill] = useState<{ sectorId?: string; subId?: string }>({});
   const { sectors: SECTORS_DB, visibleSectors: VISIBLE_SECTORS_DB } = useCategories();
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (document.getElementById("marib-home-fonts")) return;
+      const stylesheet = document.createElement("link");
+      stylesheet.id = "marib-home-fonts";
+      stylesheet.rel = "stylesheet";
+      stylesheet.href =
+        "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Aref+Ruqaa:wght@700&display=swap";
+      document.head.appendChild(stylesheet);
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const activeSector = useMemo(
     () => SECTORS_DB.find((s) => s.id === activeSectorId) ?? null,
@@ -235,7 +308,6 @@ function DirectoryPage() {
             height={720}
             loading="eager"
             fetchPriority="high"
-            decoding="async"
           />
           {/* Brand-tinted overlay to keep contrast + preserve identity */}
           <div
@@ -310,7 +382,7 @@ function DirectoryPage() {
 
         {/* Ads + quick services scroll normally with the page */}
         <div className="max-w-6xl mx-auto px-4 w-full">
-          {!activeSector && !query.trim() && <AdsSlider />}
+          {!activeSector && !query.trim() && <DeferredAdsSlider />}
 
           {!query.trim() && !activeSector && (
             <section className="mt-4 mb-3 -mx-4 px-4">
@@ -368,7 +440,9 @@ function DirectoryPage() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {searchedShops.map((s) => (
-                <ShopCard key={s.id} shop={s} />
+                <Suspense key={s.id} fallback={<ShopCardPlaceholder />}>
+                  <ShopCard shop={s} />
+                </Suspense>
               ))}
             </div>
           </section>
@@ -474,10 +548,22 @@ function DirectoryPage() {
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <ShopGrid
-                      shops={mounted ? mostVisited : []}
-                      emptyLabel="لا توجد محلات معتمدة بعد — كن أول من يُسجل محله."
-                    />
+                    {mostVisitedOpen && (
+                      <Suspense
+                        fallback={
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+                            <ShopCardPlaceholder />
+                            <ShopCardPlaceholder />
+                            <ShopCardPlaceholder />
+                          </div>
+                        }
+                      >
+                        <ShopGrid
+                          shops={mounted ? mostVisited : []}
+                          emptyLabel="لا توجد محلات معتمدة بعد — كن أول من يُسجل محله."
+                        />
+                      </Suspense>
+                    )}
                     {mostVisitedOpen && (
                       <div className="mt-3 text-center">
                         <button
@@ -840,7 +926,9 @@ function SubsectionShopsView({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {shops.map((s) => (
-            <ShopCard key={s.id} shop={s} />
+            <Suspense key={s.id} fallback={<ShopCardPlaceholder />}>
+              <ShopCard shop={s} />
+            </Suspense>
           ))}
         </div>
       )}

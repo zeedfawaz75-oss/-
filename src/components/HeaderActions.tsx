@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Hand, User as UserIcon } from "lucide-react";
 import { ModalCloseButton } from "@/components/ModalCloseButton";
-import { HelpModal } from "@/components/HelpModal";
 import { ShopThumb } from "@/components/ShopThumb";
 
 import { useServerFn } from "@tanstack/react-start";
@@ -21,6 +20,9 @@ const AccountSettingsDialog = lazy(() =>
   import("@/components/AccountSettingsDialog").then((module) => ({
     default: module.AccountSettingsDialog,
   })),
+);
+const HelpModal = lazy(() =>
+  import("@/components/HelpModal").then((module) => ({ default: module.HelpModal })),
 );
 const MyShopsDialog = lazy(() =>
   import("@/components/MyShopsDialog").then((module) => ({ default: module.MyShopsDialog })),
@@ -354,7 +356,11 @@ export function HeaderActions() {
       </div>
 
       {/* Help modal */}
-      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      {helpOpen && (
+        <Suspense fallback={null}>
+          <HelpModal open onClose={() => setHelpOpen(false)} />
+        </Suspense>
+      )}
 
       {accountSettingsOpen && user && (
         <Suspense

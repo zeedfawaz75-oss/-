@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const KEY = "marib:splash:seen";
-const MIN_MS = 1400;
+const MIN_MS = 500;
 
 export function SplashScreen() {
   // Visible on the very first paint (server + client) so the home page can never
@@ -89,6 +89,8 @@ export function SplashScreen() {
           src="/logo-gold.png"
           alt="دليل مأرب"
           className="w-36 h-36 object-contain drop-shadow-2xl"
+          width={144}
+          height={144}
         />
         <h1
           className="text-2xl sm:text-3xl font-black drop-shadow"
